@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>バスレク この人はだあれ?</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F6F2; --ink:#16232B; --sub:#5B6B70; --line:#D8DED8;
+  --amber:#F5A800; --amber-dk:#8A5B00; --board:#14181D; --dot:#FFB100;
+  --ok:#2E9E5B; --ng:#E4572E; --card:#FFFFFF;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:'M PLUS Rounded 1c',system-ui,sans-serif;}
+.wrap{max-width:540px; margin:0 auto; padding:16px 16px 80px;}
+.board{background:var(--board); border-radius:14px; padding:14px 16px;
+  color:var(--dot); font-family:'DotGothic16',monospace; letter-spacing:.06em;
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+  border-bottom:4px solid var(--amber);}
+.board .big{font-size:22px;}
+.board .small{font-size:13px; opacity:.9;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:14px 16px; margin-top:12px;}
+.h{font-size:15px; font-weight:800; margin:0 0 8px;}
+.sub{color:var(--sub); font-size:12.5px; line-height:1.6; margin:4px 0;}
+button{font-family:inherit; font-weight:800; border:none; border-radius:12px;
+  padding:12px 16px; font-size:15px; cursor:pointer;}
+.btn-p{background:var(--amber); color:#3A2A00; width:100%;}
+.btn-p:disabled{background:#E3E6E0; color:#9AA5A0; cursor:default;}
+.btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--ink); width:100%;}
+.btn-sm{padding:8px 12px; font-size:13px; border-radius:10px; width:auto;}
+input,select{font-family:inherit; font-size:16px; padding:11px 12px; width:100%;
+  border:1.5px solid var(--line); border-radius:12px; background:#fff; color:var(--ink);}
+.route{position:relative; margin:18px 4px 6px; padding-left:22px;}
+.route::before{content:""; position:absolute; left:8px; top:6px; bottom:6px;
+  width:4px; border-radius:2px;
+  background:repeating-linear-gradient(var(--amber) 0 10px, transparent 10px 18px);}
+.stop{position:relative; padding:0 0 16px;}
+.stop::before{content:""; position:absolute; left:-20px; top:4px; width:12px; height:12px;
+  border-radius:50%; background:#fff; border:3px solid var(--amber);}
+.stop.locked::before{border-color:#C4CCC6; background:#E9EDE8;}
+.stopLabel{font-size:11.5px; color:var(--sub); font-weight:700;}
+.stopVal{font-size:17px; font-weight:800; margin-top:2px;}
+.stopVal.hidden{color:#B9C2BC; letter-spacing:.2em;}
+.pill{display:inline-block; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800;}
+.pill.ok{background:#E2F3E8; color:var(--ok);}
+.pill.ng{background:#FBE4DC; color:var(--ng);}
+.pill.wait{background:#FFF1CC; color:var(--amber-dk);}
+.choiceGrid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
+.choice{background:#fff; border:1.5px solid var(--line); border-radius:12px;
+  padding:12px 8px; font-size:15px; font-weight:800; color:var(--ink);}
+.choice.sel{border-color:var(--amber); background:#FFF6DF;}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{color:var(--sub); font-size:11.5px; text-align:left; padding:6px 4px; border-bottom:1px solid var(--line);}
+td{padding:8px 4px; border-bottom:1px solid #EDF0EC; font-weight:700;}
+.r{text-align:right;}
+.rankNum{font-family:'DotGothic16',monospace; font-size:15px;}
+tr.me{background:#FFF6DF;}
+.orderTag{display:inline-flex; align-items:center; justify-content:center;
+  min-width:22px; height:22px; border-radius:50%; background:var(--ink); color:#fff;
+  font-size:12px; font-weight:800; margin-right:8px;}
+.hintPick{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+  background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
+  margin-top:8px; font-size:14px;}
+.hintPick.on{border-color:var(--amber); background:#FFF6DF;}
+.topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.brand{font-weight:800; font-size:14px; letter-spacing:.04em;}
+.link{background:none; border:none; color:var(--sub); font-size:12.5px; text-decoration:underline; padding:4px; width:auto;}
+.bigPts{font-family:'DotGothic16',monospace; font-size:30px; color:var(--amber-dk);}
+.row2{display:flex; justify-content:space-between; align-items:center;}
+.err{color:var(--ng);}
+code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ================================================================
+   ▼▼▼ セットアップ: ここを自分のFirebase設定に書き換える ▼▼▼
+   (README.md の手順1〜4を参照)
+   ================================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyADoI3WaRm7z4PxgrCnKWqG9NK6QA2xvy0",
+  authDomain: "busrec-c3ab4.firebaseapp.com",
+  databaseURL: "https://busrec-c3ab4-default-rtdb.asia-southeast1.firebasedatabase.app/", //
+  projectId: "busrec-c3ab4",
+  storageBucket: "busrec-c3ab4.firebasestorage.app",
+  messagingSenderId: "431030293527",
+  appId: "1:431030293527:web:2644e9f5daf71fe1c33852"
+};
+const ROOM = "bus1"; // 別のグループで同時開催するときはここを変える
+/* ================================================================ */
+
+const $app = document.getElementById("app");
+const configured = firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes("ここに");
+
+let db = null, roomRef = null, initError = null;
+if (configured) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    roomRef = db.ref("rooms/" + ROOM);
+  } catch (e) {
+    initError = e;
+  }
+}
+
+/* エラーを日本語で説明して表示する */
+function explainError(e){
+  const msg = (e && (e.code || e.message)) ? String(e.code || e.message) : String(e);
+  let hint = "";
+  if (/PERMISSION_DENIED|permission_denied/i.test(msg)) {
+    hint = "データベースのルールで書き込みが拒否されています。テストモードの期限切れの可能性が高いです。Firebaseコンソール → Realtime Database → ルール で、READMEの手順2にあるルール(rooms を read/write とも true)に書き換えて「公開」してください。";
+  } else if (/Cannot parse|Can't determine|Invalid|URL/i.test(msg)) {
+    hint = "databaseURL の値が正しくない可能性があります。Realtime Databaseの画面上部に表示されるURL(https://〜.firebasedatabase.app)をそのまま貼ってください。";
+  } else if (/network|unavailable|timeout/i.test(msg)) {
+    hint = "ネットワークに接続できていません。通信環境を確認してください。";
+  }
+  return "エラー: " + msg + (hint ? "\n\n対処: " + hint : "");
+}
+
+/* ---------- app state ---------- */
+let S = { game: null, round: null, history: [], players: {} }; // synced from Firebase
+let mode = "entry";           // entry | player | host
+let me = null;                // {name, key}
+let ui = { picking: false, sel: null, target: "", order: [], pinError: "", entryName: "", entryPin: "" };
+let subscribed = false;
+
+function subscribe() {
+  if (subscribed || !roomRef) return;
+  subscribed = true;
+  roomRef.on("value", (snap) => {
+    const v = snap.val() || {};
+    S.game = v.game || null;
+    S.round = v.round || null;
+    S.history = v.history ? Object.values(v.history) : [];
+    S.players = v.players || {};
+    if (mode !== "entry") render();
+  });
+}
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function nameToKey(name){
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return name.replace(/[.#$/\[\]\s]/g, "") + "_" + h.toString(36);
+}
+function pointsFor(total, k){ return Math.max(0, (total - k + 1) * 100); }
+function playerList(){ return Object.entries(S.players).map(([key, p]) => ({ ...p, key, answers: p.answers || {} })); }
+function computeScores(){
+  const rows = playerList().map(p => {
+    let score = 0, correctCount = 0;
+    S.history.forEach(r => {
+      const a = p.answers[r.id];
+      if (a && a.choice === r.target) { score += pointsFor(r.total, a.k); correctCount++; }
+    });
+    return { name: p.name, score, correctCount };
+  });
+  rows.sort((a,b) => b.score - a.score || a.name.localeCompare(b.name, "ja"));
+  let rank = 0, prev = null;
+  rows.forEach((r,i) => { if (r.score !== prev) { rank = i + 1; prev = r.score; } r.rank = rank; });
+  return rows;
+}
+function roundOrder(){ return S.round && S.round.order ? S.round.order : []; }
+function qNum(){ return S.history.length + (S.round ? 1 : 0); }
+
+/* simple CSV parser (quotes + BOM 対応) */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const rows = []; let row = [], cell = "", inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){
+      if (c === '"'){ if (text[i+1] === '"'){ cell += '"'; i++; } else inQ = false; }
+      else cell += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  row.push(cell); rows.push(row);
+  return rows.filter(r => r.some(x => x.trim() !== ""));
+}
+
+/* ---------- render pieces ---------- */
+function boardHtml(left, right){
+  return `<div class="board"><span class="big">${esc(left)}</span><span class="small">${esc(right)}</span></div>`;
+}
+function leaderboardHtml(rows, meName){
+  if (!rows.length) return `<p class="sub">まだ参加者がいません。</p>`;
+  return `<table><thead><tr><th>順位</th><th>名前</th><th class="r">正解</th><th class="r">得点</th></tr></thead><tbody>` +
+    rows.map(r => `<tr class="${r.name === meName ? "me" : ""}">
+      <td class="rankNum">${r.rank}</td><td>${esc(r.name)}</td>
+      <td class="r">${r.correctCount}</td><td class="r rankNum">${r.score}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+function routeHtml(order, revealed, hintValues, showAll, finished, target){
+  let s = `<div class="route">`;
+  order.forEach((col, i) => {
+    const open = showAll || i < revealed;
+    s += `<div class="stop ${open ? "" : "locked"}">
+      <div class="stopLabel">ヒント${i+1} ・ ${open ? esc(col) : "?????"}${showAll ? (i < revealed ? "(公開中)" : "(未公開)") : ""}</div>
+      <div class="stopVal ${open ? "" : "hidden"}">${open ? esc(hintValues[col]) : "・・・・・"}</div></div>`;
+  });
+  if (!showAll){
+    s += `<div class="stop locked"><div class="stopLabel">終点 ・ こたえ</div>
+      <div class="stopVal ${finished ? "" : "hidden"}">${finished ? esc(target) : "?????"}</div></div>`;
+  }
+  return s + `</div>`;
+}
+
+/* ---------- views ---------- */
+function renderSetupGuide(){
+  $app.innerHTML = boardHtml("この人はだあれ?", "セットアップ") + `
+    <div class="card"><p class="h">Firebaseの設定がまだです</p>
+    <p class="sub">このHTMLファイルをエディタで開き、<code>firebaseConfig</code> の「ここに貼り付け」を
+    自分のFirebaseプロジェクトの値に書き換えてください。手順は同梱の README.md にあります。</p></div>`;
+}
+
+function renderEntry(){
+  $app.innerHTML =
+    `<div style="padding-top:24px"></div>` +
+    boardHtml("この人はだあれ?", "バスレク") + `
+    <div class="card">
+      <p class="h">参加者として入る</p>
+      <p class="sub">名前を入力してください。得点はこの名前で記録されます(同じ名前で入り直せば続きから)。</p>
+      <input id="inName" placeholder="例: 高橋" value="${esc(ui.entryName)}" style="margin-top:8px">
+      <button class="btn-p" id="btnJoin" style="margin-top:10px">参加する</button>
+    </div>
+    <div class="card">
+      <p class="h">運営として入る</p>
+      <p class="sub">初回は4桁の暗証番号を設定します。以後は同じ番号で入れます。</p>
+      <input id="inPin" placeholder="暗証番号(4桁)" inputmode="numeric" maxlength="4" value="${esc(ui.entryPin)}" style="margin-top:8px">
+      ${ui.pinError ? `<p class="sub err" style="white-space:pre-line">${esc(ui.pinError)}</p>` : ""}
+      <button class="btn-o" id="btnHost" style="margin-top:10px">運営コンソールを開く</button>
+    </div>
+    <p class="sub" id="connStatus" style="margin-top:12px">… データベースに接続中</p>
+    <p class="sub" style="margin-top:16px">遊び方: 運営がヒントを1つずつ公開します。ヒントが少ないうちに答えるほど高得点
+    (ヒントn個の時点で正解 = (全ヒント数 − n + 1) × 100pt)。回答は各問1回だけ、外すと0点です。</p>`;
+
+  document.getElementById("inName").oninput = e => ui.entryName = e.target.value;
+  document.getElementById("inPin").oninput = e => { ui.entryPin = e.target.value.replace(/\D/g, ""); e.target.value = ui.entryPin; };
+  document.getElementById("btnJoin").onclick = async () => {
+    const n = ui.entryName.trim();
+    if (!n) return;
+    try {
+      const key = nameToKey(n);
+      const snap = await roomRef.child("players/" + key).get();
+      if (!snap.exists()) await roomRef.child("players/" + key).set({ name: n, joinedAt: Date.now() });
+      me = { name: n, key };
+      mode = "player"; subscribe(); render();
+    } catch (e) {
+      ui.pinError = explainError(e); render();
+    }
+  };
+  document.getElementById("btnHost").onclick = async () => {
+    try {
+      const snap = await roomRef.child("game/hostPin").get();
+      const pin = snap.val();
+      if (pin) {
+        if (ui.entryPin !== pin) { ui.pinError = "暗証番号が違います。"; render(); return; }
+      } else {
+        if (!/^\d{4}$/.test(ui.entryPin)) { ui.pinError = "初回設定: 4桁の数字で暗証番号を決めてください。"; render(); return; }
+        await roomRef.child("game/hostPin").set(ui.entryPin);
+      }
+      ui.pinError = "";
+      mode = "host"; subscribe(); render();
+    } catch (e) {
+      ui.pinError = explainError(e); render();
+    }
+  };
+  /* 接続状態の表示 */
+  db.ref(".info/connected").on("value", (snap) => {
+    const el = document.getElementById("connStatus");
+    if (el) el.textContent = snap.val() ? "✓ データベース接続OK" : "… データベースに接続中(この表示のまま変わらない場合は databaseURL を確認)";
+  });
+}
+
+function renderPlayer(){
+  const g = S.game, r = S.round;
+  const scores = computeScores();
+  const myRow = scores.find(x => x.name === me.name);
+  const meRec = S.players[me.key] || { answers: {} };
+  const myAnswer = r && meRec.answers ? (meRec.answers[r.id] || null) : null;
+  const order = roundOrder();
+  const total = order.length, k = r ? (r.revealed || 0) : 0;
+  const finished = r && r.status === "finished";
+  const potential = k >= 1 ? pointsFor(total, k) : 0;
+  const people = g && g.people ? g.people : [];
+
+  let mid = "";
+  if (!r) {
+    mid = `<div class="card"><p class="h">待機中</p>
+      <p class="sub">運営が問題を出すと、ここにヒントが表示されます。ヒントが少ないうちに答えるほど高得点。ただし外すと0点です。</p></div>`;
+  } else {
+    let action = "";
+    if (finished) {
+      const res = myAnswer
+        ? (myAnswer.choice === r.target
+          ? `<span class="pill ok">正解! +${pointsFor(total, myAnswer.k)}pt</span>`
+          : `<span class="pill ng">残念… 0pt</span>`)
+        : "";
+      action = `<p class="h" style="margin-top:6px">答えは「${esc(r.target)}」さんでした</p>` +
+        (myAnswer
+          ? `<p class="sub">あなたの回答: ${esc(myAnswer.choice)}(ヒント${myAnswer.k}個の時点) ${res}</p>`
+          : `<p class="sub">今回は回答しませんでした。</p>`);
+    } else if (myAnswer) {
+      action = `<span class="pill wait">回答済み: ${esc(myAnswer.choice)}(ヒント${myAnswer.k}個の時点)</span>
+        <p class="sub" style="margin-top:8px">答えの発表を待ちましょう。</p>`;
+    } else if (k < 1) {
+      action = `<p class="sub">最初のヒントが公開されるまでお待ちください。</p>`;
+    } else if (ui.picking) {
+      action = `<p class="sub" style="margin-top:4px">回答は1回だけ。今答えると正解で <b>+${potential}pt</b>、不正解なら0ptです。</p>
+        <div class="choiceGrid">` +
+        people.map(p => `<button class="choice ${ui.sel === p.name ? "sel" : ""}" data-pick="${esc(p.name)}">${esc(p.name)}</button>`).join("") +
+        `</div>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <button class="btn-o" id="btnCancel">やめる</button>
+          <button class="btn-p" id="btnSubmit" ${ui.sel ? "" : "disabled"}>${ui.sel ? "「" + esc(ui.sel) + "」で回答する" : "名前を選ぶ"}</button>
+        </div>`;
+    } else {
+      action = `<button class="btn-p" id="btnOpenPick" style="margin-top:6px">いま答える(正解なら +${potential}pt)</button>`;
+    }
+    mid = `<div class="card"><p class="h">この人はだあれ?</p>` +
+      routeHtml(order, k, r.hintValues || {}, false, finished, r.target) + action + `</div>`;
+  }
+
+  $app.innerHTML =
+    `<div class="topbar"><span class="brand">バスレク この人はだあれ?</span>
+     <button class="link" id="btnLeave">名前を変える</button></div>` +
+    boardHtml(r ? `第${qNum()}問` : "つぎの問題を待っています", r ? `ヒント ${k}/${total}` : `${me.name} さん`) +
+    `<div class="card row2">
+      <div><div class="sub">${esc(me.name)} さんの得点</div><div class="bigPts">${myRow ? myRow.score : 0} pt</div></div>
+      <div style="text-align:right"><div class="sub">暫定順位</div><div class="bigPts">${myRow ? myRow.rank : "-"} 位</div></div>
+    </div>` +
+    mid +
+    `<div class="card"><p class="h">ランキング</p>${leaderboardHtml(scores, me.name)}</div>`;
+
+  document.getElementById("btnLeave").onclick = () => { mode = "entry"; ui.picking = false; ui.sel = null; render(); };
+  const open = document.getElementById("btnOpenPick");
+  if (open) open.onclick = () => { ui.picking = true; render(); };
+  const cancel = document.getElementById("btnCancel");
+  if (cancel) cancel.onclick = () => { ui.picking = false; ui.sel = null; render(); };
+  document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { ui.sel = b.dataset.pick; render(); });
+  const submit = document.getElementById("btnSubmit");
+  if (submit) submit.onclick = async () => {
+    if (!ui.sel || !r || myAnswer) return;
+    const ansRef = roomRef.child(`players/${me.key}/answers/${r.id}`);
+    await ansRef.transaction(cur => cur || { choice: ui.sel, k, ts: Date.now() });
+    ui.picking = false; ui.sel = null; render();
+  };
+}
+
+function renderHost(){
+  const g = S.game, r = S.round;
+  const scores = computeScores();
+  const players = playerList();
+  const cols = g && g.cols ? g.cols : [];
+  const people = g && g.people ? g.people : [];
+  const person = people.find(p => p.name === ui.target) || null;
+  const order = roundOrder();
+
+  let makeCard = "";
+  if (people.length && !r) {
+    makeCard = `<div class="card"><p class="h">次の問題をつくる(第${S.history.length + 1}問)</p>
+      <p class="sub">答えにする人を選び、ヒントを出したい順にタップしてください。</p>
+      <select id="selTarget" style="margin-top:8px">
+        <option value="">答えにする人を選ぶ</option>` +
+        people.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("") +
+      `</select>` +
+      (person ? `<div style="margin-top:6px">` +
+        cols.map(c => {
+          const idx = ui.order.indexOf(c);
+          return `<button class="hintPick ${idx >= 0 ? "on" : ""}" data-hint="${esc(c)}">
+            <span class="orderTag" style="visibility:${idx >= 0 ? "visible" : "hidden"}">${idx + 1}</span>
+            <span style="flex:1"><span class="stopLabel">${esc(c)}</span><br><b>${esc(person.hints[c] || "(未回答)")}</b></span>
+          </button>`;
+        }).join("") +
+        `<button class="btn-p" id="btnStart" style="margin-top:12px" ${ui.order.length ? "" : "disabled"}>
+          この順番で出題を開始(${ui.order.length}ヒント)</button></div>` : "") +
+      `</div>`;
+  }
+
+  let roundCard = "";
+  if (r) {
+    const ctrl = r.status === "running"
+      ? `<div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn-p" id="btnReveal" style="flex:1 1 100%" ${r.revealed >= order.length ? "disabled" : ""}>
+            ${r.revealed >= order.length ? "全ヒント公開済み" : `次のヒントを公開(${(r.revealed || 0) + 1}/${order.length})`}</button>
+          <button class="btn-o" id="btnFinish" style="flex:1">答えを発表する</button></div>`
+      : `<button class="btn-p" id="btnNext">次の問題へ</button>`;
+    roundCard = `<div class="card"><p class="h">答え: ${esc(r.target)} さん</p>` +
+      routeHtml(order, r.revealed || 0, r.hintValues || {}, true, false, r.target) + ctrl + `</div>`;
+
+    const answered = players.filter(p => p.answers[r.id]);
+    roundCard += `<div class="card"><p class="h">回答状況(${answered.length}/${players.length}人)</p>
+      <table><thead><tr><th>名前</th><th>回答</th><th>時点</th><th>判定</th></tr></thead><tbody>` +
+      players.map(p => {
+        const a = p.answers[r.id];
+        const judge = a
+          ? (a.choice === r.target
+            ? `<span class="pill ok">正解 +${pointsFor(order.length, a.k)}</span>`
+            : `<span class="pill ng">不正解</span>`)
+          : `<span class="pill wait">未回答</span>`;
+        return `<tr><td>${esc(p.name)}</td><td>${a ? esc(a.choice) : "-"}</td><td>${a ? "ヒント" + a.k : "-"}</td><td>${judge}</td></tr>`;
+      }).join("") + `</tbody></table></div>`;
+  }
+
+  $app.innerHTML =
+    `<div class="topbar"><span class="brand">運営コンソール</span>
+     <button class="link" id="btnLeave">トップへ戻る</button></div>` +
+    boardHtml(r ? `第${qNum()}問 進行中` : "待機中", r ? `ヒント ${r.revealed || 0}/${order.length}` : `参加 ${players.length}人`) +
+    `<div class="card"><p class="h">参加者データ(CSV)</p>` +
+    (people.length
+      ? `<p class="sub">${people.length}人 ・ ヒント${cols.length}種類(${cols.map(esc).join(" / ")})</p>`
+      : `<p class="sub">1列目=名前、2列目以降=ヒントのCSVをアップロードしてください。</p>`) +
+    `<input type="file" id="inCsv" accept=".csv,text/csv" style="margin-top:8px"></div>` +
+    makeCard + roundCard +
+    `<div class="card"><p class="h">全体ランキング</p>${leaderboardHtml(scores, null)}</div>
+     <div class="card"><p class="h">リセット</p>
+      <p class="sub">レクを最初からやり直すときに使います。得点・履歴・参加者名簿を消去します(CSVデータは残ります)。</p>
+      <button class="btn-o btn-sm" id="btnReset" style="margin-top:8px">すべてリセット</button></div>`;
+
+  document.getElementById("btnLeave").onclick = () => { mode = "entry"; render(); };
+  document.getElementById("inCsv").onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rows = parseCSV(await f.text());
+    if (rows.length < 2) { alert("CSVを読み込めませんでした。1行目が見出し、2行目以降がデータになっているか確認してください。"); return; }
+    const headers = rows[0].map(h => String(h || "").trim());
+    const hintCols = headers.slice(1).filter(c => c);
+    const ppl = rows.slice(1).map(row => {
+      const name = String(row[0] || "").trim();
+      const hints = {};
+      hintCols.forEach((c, i) => hints[c] = String(row[i + 1] ?? "").trim());
+      return { name, hints };
+    }).filter(p => p.name);
+    if (!ppl.length || !hintCols.length) { alert("名前列またはヒント列が見つかりません。"); return; }
+    await roomRef.child("game/cols").set(hintCols);
+    await roomRef.child("game/people").set(ppl);
+    ui.target = ""; ui.order = [];
+  };
+  const selT = document.getElementById("selTarget");
+  if (selT) selT.onchange = e => { ui.target = e.target.value; ui.order = []; render(); };
+  document.querySelectorAll("[data-hint]").forEach(b => b.onclick = () => {
+    const c = b.dataset.hint;
+    const i = ui.order.indexOf(c);
+    if (i >= 0) ui.order.splice(i, 1); else ui.order.push(c);
+    render();
+  });
+  const start = document.getElementById("btnStart");
+  if (start) start.onclick = async () => {
+    if (!person || !ui.order.length) return;
+    const hintValues = {};
+    ui.order.forEach(c => hintValues[c] = person.hints[c] || "");
+    await roomRef.child("round").set({
+      id: "r" + Date.now().toString(36),
+      target: person.name,
+      order: [...ui.order],
+      hintValues,
+      revealed: 0,
+      status: "running",
+      startedAt: Date.now()
+    });
+    ui.target = ""; ui.order = [];
+  };
+  const reveal = document.getElementById("btnReveal");
+  if (reveal) reveal.onclick = () =>
+    roomRef.child("round/revealed").transaction(v => Math.min((v || 0) + 1, order.length));
+  const finish = document.getElementById("btnFinish");
+  if (finish) finish.onclick = async () => {
+    await roomRef.child("round").update({ status: "finished", revealed: order.length });
+    await roomRef.child("history").push({ id: r.id, target: r.target, total: order.length });
+  };
+  const next = document.getElementById("btnNext");
+  if (next) next.onclick = () => roomRef.child("round").remove();
+  document.getElementById("btnReset").onclick = async () => {
+    if (!confirm("得点・履歴・参加者をすべてリセットします。よろしいですか?")) return;
+    await roomRef.child("round").remove();
+    await roomRef.child("history").remove();
+    await roomRef.child("players").remove();
+  };
+}
+
+function render(){
+  if (!configured) { renderSetupGuide(); return; }
+  if (initError) {
+    $app.innerHTML = boardHtml("この人はだあれ?", "エラー") +
+      `<div class="card"><p class="h">起動できませんでした</p>
+       <p class="sub err" style="white-space:pre-line">${esc(explainError(initError))}</p></div>`;
+    return;
+  }
+  if (mode === "entry") renderEntry();
+  else if (mode === "player") renderPlayer();
+  else renderHost();
+}
+render();
+</script>
+</body>
+</html>
