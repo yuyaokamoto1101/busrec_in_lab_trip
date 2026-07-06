@@ -128,7 +128,7 @@ function explainError(e){
 let S = { game: null, round: null, history: [], players: {} }; // synced from Firebase
 let mode = "entry";           // entry | player | host
 let me = null;                // {name, key}
-let ui = { picking: false, sel: null, target: "", order: [], pinError: "", entryName: "", entryPin: "" };
+let ui = { picking: false, sel: null, target: "", order: [], practice: false, mult: 1, pinError: "", entryName: "", entryPin: "" };
 let subscribed = false;
 
 function subscribe() {
@@ -151,14 +151,15 @@ function nameToKey(name){
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return name.replace(/[.#$/\[\]\s]/g, "") + "_" + h.toString(36);
 }
-function pointsFor(total, k){ return Math.max(0, (total - k + 1) * 100); }
+function pointsFor(total, k, mult){ return Math.max(0, (total - k + 1) * 100) * (mult || 1); }
 function playerList(){ return Object.entries(S.players).map(([key, p]) => ({ ...p, key, answers: p.answers || {} })); }
 function computeScores(){
   const rows = playerList().map(p => {
     let score = 0, correctCount = 0;
     S.history.forEach(r => {
+      if (r.practice) return; // 例題は得点対象外
       const a = p.answers[r.id];
-      if (a && a.choice === r.target) { score += pointsFor(r.total, a.k); correctCount++; }
+      if (a && a.choice === r.target) { score += pointsFor(r.total, a.k, r.mult); correctCount++; }
     });
     return { name: p.name, score, correctCount };
   });
@@ -291,8 +292,13 @@ function renderPlayer(){
   const order = roundOrder();
   const total = order.length, k = r ? (r.revealed || 0) : 0;
   const finished = r && r.status === "finished";
-  const potential = k >= 1 ? pointsFor(total, k) : 0;
+  const mult = r ? (r.mult || 1) : 1;
+  const practice = r ? !!r.practice : false;
+  const potential = k >= 1 ? pointsFor(total, k, mult) : 0;
   const people = g && g.people ? g.people : [];
+  const badge = practice
+    ? `<span class="pill wait">例題(得点は入りません)</span>`
+    : (mult > 1 ? `<span class="pill" style="background:#FFE3B0;color:#8A5B00">🔥 得点${mult}倍タイム!</span>` : "");
 
   let mid = "";
   if (!r) {
@@ -303,8 +309,10 @@ function renderPlayer(){
     if (finished) {
       const res = myAnswer
         ? (myAnswer.choice === r.target
-          ? `<span class="pill ok">正解! +${pointsFor(total, myAnswer.k)}pt</span>`
-          : `<span class="pill ng">残念… 0pt</span>`)
+          ? (practice
+            ? `<span class="pill ok">正解!(例題)</span>`
+            : `<span class="pill ok">正解! +${pointsFor(total, myAnswer.k, mult)}pt</span>`)
+          : `<span class="pill ng">${practice ? "残念…(例題)" : "残念… 0pt"}</span>`)
         : "";
       action = `<p class="h" style="margin-top:6px">答えは「${esc(r.target)}」さんでした</p>` +
         (myAnswer
@@ -316,7 +324,9 @@ function renderPlayer(){
     } else if (k < 1) {
       action = `<p class="sub">最初のヒントが公開されるまでお待ちください。</p>`;
     } else if (ui.picking) {
-      action = `<p class="sub" style="margin-top:4px">回答は1回だけ。今答えると正解で <b>+${potential}pt</b>、不正解なら0ptです。</p>
+      action = `<p class="sub" style="margin-top:4px">${practice
+          ? "これは例題です。得点は入りませんが、流れをつかんでみましょう。"
+          : `回答は1回だけ。今答えると正解で <b>+${potential}pt</b>、不正解なら0ptです。`}</p>
         <div class="choiceGrid">` +
         people.map(p => `<button class="choice ${ui.sel === p.name ? "sel" : ""}" data-pick="${esc(p.name)}">${esc(p.name)}</button>`).join("") +
         `</div>
@@ -325,9 +335,11 @@ function renderPlayer(){
           <button class="btn-p" id="btnSubmit" ${ui.sel ? "" : "disabled"}>${ui.sel ? "「" + esc(ui.sel) + "」で回答する" : "名前を選ぶ"}</button>
         </div>`;
     } else {
-      action = `<button class="btn-p" id="btnOpenPick" style="margin-top:6px">いま答える(正解なら +${potential}pt)</button>`;
+      action = `<button class="btn-p" id="btnOpenPick" style="margin-top:6px">${practice
+        ? "いま答える(例題・得点なし)"
+        : `いま答える(正解なら +${potential}pt)`}</button>`;
     }
-    mid = `<div class="card"><p class="h">この人はだあれ?</p>` +
+    mid = `<div class="card"><p class="h">この人はだあれ? ${badge}</p>` +
       routeHtml(order, k, r.hintValues || {}, false, finished, r.target) + action + `</div>`;
   }
 
@@ -368,34 +380,51 @@ function renderHost(){
 
   let makeCard = "";
   if (people.length && !r) {
+    const usable = person ? cols.filter(c => (person.hints[c] || "").trim() !== "") : [];
+    const skipped = person ? cols.length - usable.length : 0;
     makeCard = `<div class="card"><p class="h">次の問題をつくる(第${S.history.length + 1}問)</p>
-      <p class="sub">答えにする人を選び、ヒントを出したい順にタップしてください。</p>
+      <p class="sub">答えにする人を選び、<b>使いたいヒントだけ</b>を出したい順にタップしてください。タップしなかった項目は出題されません。</p>
       <select id="selTarget" style="margin-top:8px">
         <option value="">答えにする人を選ぶ</option>` +
         people.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("") +
       `</select>` +
       (person ? `<div style="margin-top:6px">` +
-        cols.map(c => {
+        (skipped > 0 ? `<p class="sub">空欄の項目${skipped}件は自動的に除外しています。</p>` : "") +
+        usable.map(c => {
           const idx = ui.order.indexOf(c);
           return `<button class="hintPick ${idx >= 0 ? "on" : ""}" data-hint="${esc(c)}">
             <span class="orderTag" style="visibility:${idx >= 0 ? "visible" : "hidden"}">${idx + 1}</span>
-            <span style="flex:1"><span class="stopLabel">${esc(c)}</span><br><b>${esc(person.hints[c] || "(未回答)")}</b></span>
+            <span style="flex:1"><span class="stopLabel">${esc(c)}</span><br><b>${esc(person.hints[c])}</b></span>
           </button>`;
         }).join("") +
-        `<button class="btn-p" id="btnStart" style="margin-top:12px" ${ui.order.length ? "" : "disabled"}>
-          この順番で出題を開始(${ui.order.length}ヒント)</button></div>` : "") +
+        `<div style="display:flex; gap:8px; margin-top:12px; align-items:center">
+          <label class="sub" style="flex:1; display:flex; align-items:center; gap:6px; margin:0">
+            <input type="checkbox" id="chkPractice" style="width:auto" ${ui.practice ? "checked" : ""}>
+            例題にする(得点なし)
+          </label>
+          <select id="selMult" style="flex:1">
+            <option value="1" ${ui.mult === 1 ? "selected" : ""}>得点 通常(×1)</option>
+            <option value="2" ${ui.mult === 2 ? "selected" : ""}>得点 2倍タイム</option>
+            <option value="3" ${ui.mult === 3 ? "selected" : ""}>得点 3倍タイム</option>
+          </select>
+        </div>
+        <button class="btn-p" id="btnStart" style="margin-top:12px" ${ui.order.length ? "" : "disabled"}>
+          この順番で出題を開始(${ui.order.length}ヒント${ui.practice ? "・例題" : (ui.mult > 1 ? "・" + ui.mult + "倍" : "")})</button></div>` : "") +
       `</div>`;
   }
 
   let roundCard = "";
   if (r) {
+    const rBadge = r.practice
+      ? `<span class="pill wait">例題</span>`
+      : ((r.mult || 1) > 1 ? `<span class="pill" style="background:#FFE3B0;color:#8A5B00">${r.mult}倍タイム</span>` : "");
     const ctrl = r.status === "running"
       ? `<div style="display:flex; gap:8px; flex-wrap:wrap">
           <button class="btn-p" id="btnReveal" style="flex:1 1 100%" ${r.revealed >= order.length ? "disabled" : ""}>
             ${r.revealed >= order.length ? "全ヒント公開済み" : `次のヒントを公開(${(r.revealed || 0) + 1}/${order.length})`}</button>
           <button class="btn-o" id="btnFinish" style="flex:1">答えを発表する</button></div>`
       : `<button class="btn-p" id="btnNext">次の問題へ</button>`;
-    roundCard = `<div class="card"><p class="h">答え: ${esc(r.target)} さん</p>` +
+    roundCard = `<div class="card"><p class="h">答え: ${esc(r.target)} さん ${rBadge}</p>` +
       routeHtml(order, r.revealed || 0, r.hintValues || {}, true, false, r.target) + ctrl + `</div>`;
 
     const answered = players.filter(p => p.answers[r.id]);
@@ -405,7 +434,9 @@ function renderHost(){
         const a = p.answers[r.id];
         const judge = a
           ? (a.choice === r.target
-            ? `<span class="pill ok">正解 +${pointsFor(order.length, a.k)}</span>`
+            ? (r.practice
+              ? `<span class="pill ok">正解(例題)</span>`
+              : `<span class="pill ok">正解 +${pointsFor(order.length, a.k, r.mult)}</span>`)
             : `<span class="pill ng">不正解</span>`)
           : `<span class="pill wait">未回答</span>`;
         return `<tr><td>${esc(p.name)}</td><td>${a ? esc(a.choice) : "-"}</td><td>${a ? "ヒント" + a.k : "-"}</td><td>${judge}</td></tr>`;
@@ -424,30 +455,50 @@ function renderHost(){
     makeCard + roundCard +
     `<div class="card"><p class="h">全体ランキング</p>${leaderboardHtml(scores, null)}</div>
      <div class="card"><p class="h">リセット</p>
-      <p class="sub">レクを最初からやり直すときに使います。得点・履歴・参加者名簿を消去します(CSVデータは残ります)。</p>
+      <p class="sub">レクを最初からやり直すときに使います。CSVデータ・得点・履歴・参加者名簿をすべて消去して完全に初期化します(運営の暗証番号のみ残ります)。</p>
       <button class="btn-o btn-sm" id="btnReset" style="margin-top:8px">すべてリセット</button></div>`;
 
   document.getElementById("btnLeave").onclick = () => { mode = "entry"; render(); };
   document.getElementById("inCsv").onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    const rows = parseCSV(await f.text());
-    if (rows.length < 2) { alert("CSVを読み込めませんでした。1行目が見出し、2行目以降がデータになっているか確認してください。"); return; }
-    const headers = rows[0].map(h => String(h || "").trim());
-    const hintCols = headers.slice(1).filter(c => c);
-    const ppl = rows.slice(1).map(row => {
-      const name = String(row[0] || "").trim();
-      const hints = {};
-      hintCols.forEach((c, i) => hints[c] = String(row[i + 1] ?? "").trim());
-      return { name, hints };
-    }).filter(p => p.name);
-    if (!ppl.length || !hintCols.length) { alert("名前列またはヒント列が見つかりません。"); return; }
-    await roomRef.child("game/cols").set(hintCols);
-    await roomRef.child("game/people").set(ppl);
-    ui.target = ""; ui.order = [];
+    try {
+      const rows = parseCSV(await f.text());
+      if (rows.length < 2) { alert("CSVを読み込めませんでした。1行目が見出し、2行目以降がデータになっているか確認してください。"); return; }
+      /* Firebaseのキーに使えない文字 . # $ / [ ] を全角に置換し、空・重複も解消 */
+      const sanitize = (s) => String(s || "").trim()
+        .replace(/\./g, "。").replace(/#/g, "#").replace(/\$/g, "$")
+        .replace(/\//g, "/").replace(/\[/g, "[").replace(/\]/g, "]");
+      const headersRaw = rows[0].map(sanitize);
+      const seen = {};
+      const headers = headersRaw.map(h => {
+        if (!h) return "";
+        if (seen[h]) { seen[h]++; return h + "(" + seen[h] + ")"; }
+        seen[h] = 1; return h;
+      });
+      const hintCols = headers.slice(1).filter(c => c);
+      const colIdx = headers.slice(1).map((c, i) => c ? i + 1 : -1).filter(i => i >= 0);
+      const ppl = rows.slice(1).map(row => {
+        const name = String(row[0] || "").trim();
+        const hints = {};
+        hintCols.forEach((c, j) => hints[c] = String(row[colIdx[j]] ?? "").trim());
+        return { name, hints };
+      }).filter(p => p.name);
+      if (!ppl.length || !hintCols.length) { alert("名前列またはヒント列が見つかりません。1列目が名前になっているか確認してください。"); return; }
+      await roomRef.child("game/cols").set(hintCols);
+      await roomRef.child("game/people").set(ppl);
+      ui.target = ""; ui.order = [];
+      alert(`CSVを読み込みました: ${ppl.length}人 ・ ヒント${hintCols.length}種類`);
+    } catch (err) {
+      alert("CSVの取り込みに失敗しました。\n\n" + explainError(err));
+    }
   };
   const selT = document.getElementById("selTarget");
   if (selT) selT.onchange = e => { ui.target = e.target.value; ui.order = []; render(); };
+  const chkP = document.getElementById("chkPractice");
+  if (chkP) chkP.onchange = e => { ui.practice = e.target.checked; render(); };
+  const selM = document.getElementById("selMult");
+  if (selM) selM.onchange = e => { ui.mult = parseInt(e.target.value, 10) || 1; render(); };
   document.querySelectorAll("[data-hint]").forEach(b => b.onclick = () => {
     const c = b.dataset.hint;
     const i = ui.order.indexOf(c);
@@ -466,9 +517,11 @@ function renderHost(){
       hintValues,
       revealed: 0,
       status: "running",
+      practice: ui.practice,
+      mult: ui.mult,
       startedAt: Date.now()
     });
-    ui.target = ""; ui.order = [];
+    ui.target = ""; ui.order = []; ui.practice = false; ui.mult = 1;
   };
   const reveal = document.getElementById("btnReveal");
   if (reveal) reveal.onclick = () =>
@@ -476,15 +529,18 @@ function renderHost(){
   const finish = document.getElementById("btnFinish");
   if (finish) finish.onclick = async () => {
     await roomRef.child("round").update({ status: "finished", revealed: order.length });
-    await roomRef.child("history").push({ id: r.id, target: r.target, total: order.length });
+    await roomRef.child("history").push({ id: r.id, target: r.target, total: order.length, practice: !!r.practice, mult: r.mult || 1 });
   };
   const next = document.getElementById("btnNext");
   if (next) next.onclick = () => roomRef.child("round").remove();
   document.getElementById("btnReset").onclick = async () => {
-    if (!confirm("得点・履歴・参加者をすべてリセットします。よろしいですか?")) return;
+    if (!confirm("CSVデータを含め、すべて完全に初期化します(残るのは運営の暗証番号だけです)。よろしいですか?")) return;
     await roomRef.child("round").remove();
     await roomRef.child("history").remove();
     await roomRef.child("players").remove();
+    await roomRef.child("game/cols").remove();
+    await roomRef.child("game/people").remove();
+    ui.target = ""; ui.order = []; ui.practice = false; ui.mult = 1;
   };
 }
 
