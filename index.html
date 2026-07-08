@@ -462,10 +462,10 @@ function renderPlayer(){
     boardHtml(boardLeft, boardRight) +
     `<div class="card row2">
       <div><div class="sub">${T(esc(me.name)+" さんの得点", esc(me.name)+"'s score")}</div><div class="bigPts">${myRow ? myRow.score : 0} pt</div></div>
-      <div style="text-align:right"><div class="sub">${T("暫定順位","Current rank")}</div><div class="bigPts">${myRow ? myRow.rank : "-"} ${T("位","")}</div></div>
+      <div style="text-align:right"><div class="sub">${T("暫定順位","Current rank")}</div><div class="bigPts" style="font-size:15px; color:var(--sub)">${T("非公開","Hidden")}</div></div>
     </div>` +
-    mid +
-    `<div class="card"><p class="h">${T("ランキング","Leaderboard")}</p>${leaderboardHtml(scores, me.name)}</div>`;
+    `<p class="sub" style="margin:4px 6px">${T("順位は運営が発表するまで表示されません。","Rankings are only shown when the host reveals them.")}</p>` +
+    mid;
 
   document.getElementById("btnLeave").onclick = () => { mode = "entry"; ui.picking = false; ui.sel = null; render(); };
   const open = document.getElementById("btnOpenPick");
