@@ -87,6 +87,14 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 @keyframes pulseB{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 .sceneHead{font-size:20px; font-weight:800; text-align:center; margin:8px 0 4px; line-height:1.4;}
 .sceneSub{text-align:center;}
+.resultBanner{border-radius:14px; text-align:center; padding:18px 12px 14px; margin-top:10px;}
+.resultBanner.ok{background:#E2F3E8; border:2px solid var(--ok);}
+.resultBanner.ng{background:#FBE4DC; border:2px solid var(--ng);}
+.resultBig{font-size:32px; font-weight:800; line-height:1.2;}
+.resultBanner.ok .resultBig{color:var(--ok);}
+.resultBanner.ng .resultBig{color:var(--ng);}
+.resultPts{font-family:'DotGothic16',monospace; font-size:24px; margin-top:6px; color:var(--amber-dk);}
+.resultRank{font-size:14px; font-weight:800; margin-top:6px;}
 </style>
 </head>
 <body>
@@ -155,6 +163,8 @@ let mode = "entry";           // entry | player | host
 let me = null;                // {name, key}
 let ui = { picking: false, sel: null, target: "", order: [], practice: false, mult: 1, final: false, pinError: "", entryName: "", entryPin: "" };
 let subscribed = false;
+let entryPeople = null;        // トップ画面用の名簿キャッシュ / cached name list for the entry screen
+let entryPeopleLoading = false;
 
 function subscribe() {
   if (subscribed || !roomRef) return;
@@ -178,6 +188,21 @@ function nameToKey(name){
   return name.replace(/[.#$/\[\]\s]/g, "") + "_" + h.toString(36);
 }
 function pointsFor(total, k, mult){ return Math.max(0, (total - k + 1) * 100) * (mult || 1); }
+/* 出題対象者へのボーナス: 他の参加者が取り損ねた点数の平均(全員即答なら0、誰も当てられなければ満点相当)
+   Subject bonus: average points the others FAILED to earn (0 if everyone answers instantly, full if nobody gets it) */
+function subjectBonus(rid, target, total, mult, practice){
+  if (practice) return 0;
+  const others = playerList().filter(p => p.name !== target);
+  if (!others.length) return 0;
+  const max = total * 100 * (mult || 1);
+  let sum = 0;
+  others.forEach(p => {
+    const a = p.answers[rid];
+    const earned = (a && a.choice === target) ? pointsFor(total, a.k, mult) : 0;
+    sum += max - earned;
+  });
+  return Math.round(sum / others.length / 10) * 10;
+}
 function playerList(){ return Object.entries(S.players).map(([key, p]) => ({ ...p, key, answers: p.answers || {} })); }
 function computeScores(){
   const rows = playerList().map(p => {
@@ -189,12 +214,25 @@ function computeScores(){
     });
     return { name: p.name, score, correctCount };
   });
+  /* 出題対象者ボーナスを加算 / add subject bonuses */
+  S.history.forEach(r => {
+    if (r.practice) return;
+    const row = rows.find(x => x.name === r.target);
+    if (row) row.score += subjectBonus(r.id, r.target, r.total, r.mult, r.practice);
+  });
   rows.sort((a,b) => b.score - a.score || a.name.localeCompare(b.name, "ja"));
   let rank = 0, prev = null;
   rows.forEach((r,i) => { if (r.score !== prev) { rank = i + 1; prev = r.score; } r.rank = rank; });
   return rows;
 }
 function roundOrder(){ return S.round && S.round.order ? S.round.order : []; }
+/* このラウンドの回答を回答時刻順に並べる / answers for a round, sorted by answer time */
+function answersFor(rid, target){
+  return playerList()
+    .filter(p => p.name !== target && p.answers[rid])
+    .map(p => ({ name: p.name, a: p.answers[rid] }))
+    .sort((x, y) => (x.a.ts || 0) - (y.a.ts || 0));
+}
 function qNum(){ return S.history.length + (S.round ? 1 : 0); }
 
 /* simple CSV parser (quotes + BOM 対応) */
@@ -316,11 +354,22 @@ function renderEntry(){
     <div class="card">
       <p class="h">${T("参加者として入る","Join as a Player")}</p>
       <p class="sub">${T(
-        "名前を入力してください。得点はこの名前で記録されます(同じ名前で入り直せば続きから)。",
-        "Enter your name. Your score will be recorded under this name (re-enter the same name to continue later)."
+        "名簿から自分の名前を選んでください。得点はこの名前で記録されます(同じ名前で入り直せば続きから)。",
+        "Select your own name from the list. Your score will be recorded under this name (re-select the same name to continue later)."
       )}</p>
-      <input id="inName" placeholder="${T("例: 高橋","e.g. Takahashi")}" value="${esc(ui.entryName)}" style="margin-top:8px">
-      <button class="btn-p" id="btnJoin" style="margin-top:10px">${T("参加する","Join")}</button>
+      ${entryPeople === null
+        ? `<p class="sub">… ${T("名簿を読み込み中","Loading the name list")}</p>`
+        : (entryPeople.length
+          ? `<select id="selName" style="margin-top:8px">
+              <option value="">${T("自分の名前を選ぶ","Select your name")}</option>` +
+              entryPeople.map(n => `<option value="${esc(n)}" ${ui.entryName === n ? "selected" : ""}>${esc(n)}</option>`).join("") +
+            `</select>
+            <button class="btn-p" id="btnJoin" style="margin-top:10px" ${ui.entryName ? "" : "disabled"}>${T("参加する","Join")}</button>`
+          : `<p class="sub">${T(
+              "名簿がまだ登録されていません。運営がCSVをアップロードするまでお待ちください。",
+              "The name list isn't registered yet. Please wait for the host to upload the CSV."
+            )}</p>
+            <button class="btn-o btn-sm" id="btnReloadNames" style="margin-top:6px">🔄 ${T("再読み込み","Reload")}</button>`)}
     </div>
     <div class="card">
       <p class="h">${T("運営として入る","Enter as Host")}</p>
@@ -338,9 +387,23 @@ function renderEntry(){
       "The host reveals hints one at a time. Answering with fewer hints revealed earns more points (correct with n hints shown = (total hints − n + 1) × 100pt). You may answer once per question; a wrong answer scores 0."
     )}</p>`;
 
-  document.getElementById("inName").oninput = e => ui.entryName = e.target.value;
+  /* 名簿の取得(初回のみ) / fetch name list once */
+  if (entryPeople === null && !entryPeopleLoading) {
+    entryPeopleLoading = true;
+    roomRef.child("game/people").get().then(snap => {
+      const v = snap.val() || [];
+      entryPeople = (Array.isArray(v) ? v : Object.values(v)).map(p => p.name).filter(Boolean);
+      entryPeopleLoading = false;
+      if (mode === "entry") render();
+    }).catch(() => { entryPeople = []; entryPeopleLoading = false; if (mode === "entry") render(); });
+  }
+  const selName = document.getElementById("selName");
+  if (selName) selName.onchange = e => { ui.entryName = e.target.value; render(); };
+  const btnReload = document.getElementById("btnReloadNames");
+  if (btnReload) btnReload.onclick = () => { entryPeople = null; render(); };
   document.getElementById("inPin").oninput = e => { ui.entryPin = e.target.value.replace(/\D/g, ""); e.target.value = ui.entryPin; };
-  document.getElementById("btnJoin").onclick = async () => {
+  const btnJoin = document.getElementById("btnJoin");
+  if (btnJoin) btnJoin.onclick = async () => {
     const n = ui.entryName.trim();
     if (!n) return;
     try {
@@ -407,23 +470,59 @@ function renderPlayer(){
         "運営が問題を出すと、ここにヒントが表示されます。ヒントが少ないうちに答えるほど高得点。ただし外すと0点です。",
         "When the host starts a question, hints will appear here. Answering with fewer hints revealed earns more points, but a wrong answer scores 0."
       )}</p></div>`;
+  } else if (me.name === r.target) {
+    /* 自分が出題対象のとき / when you are the subject of the question */
+    const bonus = finished ? subjectBonus(r.id, r.target, total, mult, practice) : null;
+    const inner = finished
+      ? `<p class="h" style="margin-top:6px">${T("答えは「"+esc(r.target)+"」…つまりあなたでした!","The answer was "+esc(r.target)+" — that's you!")}</p>` +
+        (practice
+          ? `<p class="sub">${T("例題のため得点はありません。","No points for practice rounds.")}</p>`
+          : `<p class="sub">${T("みんなの迷いっぷりに応じたボーナス","Bonus based on how much everyone struggled")}: <b>+${bonus}pt</b></p>`)
+      : `<span class="pill wait">🤫 ${T("この問題の答えはあなたです!","You are the answer to this question!")}</span>
+         <p class="sub" style="margin-top:8px">${T(
+           "回答はできません。みんなが迷うほど、あなたにボーナスポイントが入ります。すました顔で待ちましょう。",
+           "You can't answer this one. The more everyone struggles, the bigger your bonus. Keep a straight face and wait."
+         )}</p>`;
+    mid = `<div class="card"><p class="h">${T("この人はだあれ?","Who is this?")} ${badge}</p>` +
+      routeHtml(order, k, r.hintValues || {}, false, finished, r.target) + inner + `</div>`;
   } else {
     let action = "";
     if (finished) {
-      const res = myAnswer
-        ? (myAnswer.choice === r.target
-          ? (practice
-            ? `<span class="pill ok">${T("正解!(例題)","Correct! (practice)")}</span>`
-            : `<span class="pill ok">${T("正解!","Correct!")} +${pointsFor(total, myAnswer.k, mult)}pt</span>`)
-          : `<span class="pill ng">${practice ? T("残念…(例題)","Not quite (practice)") : T("残念… 0pt","Not quite... 0pt")}</span>`)
-        : "";
-      action = `<p class="h" style="margin-top:6px">${T("答えは「"+esc(r.target)+"」さんでした","The answer was "+esc(r.target))}</p>` +
+      let banner = "";
+      if (myAnswer) {
+        const ok = myAnswer.choice === r.target;
+        const pts = practice ? null : (ok ? pointsFor(total, myAnswer.k, mult) : 0);
+        let rankLine = "";
+        if (ok) {
+          const correct = answersFor(r.id, r.target).filter(x => x.a.choice === r.target);
+          const myPos = correct.findIndex(x => x.name === me.name) + 1;
+          rankLine = `<div class="resultRank">🏅 ${T(
+            "正解者"+correct.length+"人中 "+myPos+"位(回答順)",
+            "#"+myPos+" of "+correct.length+" correct (by speed)"
+          )}</div>`;
+        }
+        banner = `<div class="resultBanner ${ok ? "ok" : "ng"}">
+          <div class="resultBig">${ok ? "⭕ " + T("正解!","Correct!") : "❌ " + T("不正解…","Wrong...")}</div>
+          ${practice
+            ? `<div class="resultRank">${T("例題のため得点なし","Practice: no points")}</div>`
+            : `<div class="resultPts">${ok ? "+" + pts : "0"} pt</div>`}
+          ${rankLine}
+        </div>`;
+      }
+      action = banner +
+        `<p class="h" style="margin-top:10px">${T("答えは「"+esc(r.target)+"」さんでした","The answer was "+esc(r.target))}</p>` +
         (myAnswer
-          ? `<p class="sub">${T("あなたの回答","Your answer")}: ${esc(myAnswer.choice)} (${T("ヒント"+myAnswer.k+"個の時点","at "+myAnswer.k+" hint(s)")}) ${res}</p>`
+          ? `<p class="sub">${T("あなたの回答","Your answer")}: ${esc(myAnswer.choice)} (${T("ヒント"+myAnswer.k+"個の時点","at "+myAnswer.k+" hint(s)")})</p>`
           : `<p class="sub">${T("今回は回答しませんでした。","You did not answer this round.")}</p>`);
     } else if (myAnswer) {
+      const ans = answersFor(r.id, r.target);
+      const myPos = ans.findIndex(x => x.name === me.name) + 1;
       action = `<span class="pill wait">${T("回答済み","Answered")}: ${esc(myAnswer.choice)} (${T("ヒント"+myAnswer.k+"個の時点","at "+myAnswer.k+" hint(s)")})</span>
-        <p class="sub" style="margin-top:8px">${T("答えの発表を待ちましょう。","Wait for the answer to be revealed.")}</p>`;
+        <p class="sub" style="margin-top:8px">⚡ ${T(
+          "あなたの回答速度: 現在"+ans.length+"人中 "+myPos+"番目",
+          "Your answer speed: #"+myPos+" of "+ans.length+" so far"
+        )}</p>
+        <p class="sub">${T("答えの発表を待ちましょう。","Wait for the answer to be revealed.")}</p>`;
     } else if (k < 1) {
       action = `<p class="sub">${T("最初のヒントが公開されるまでお待ちください。","Please wait for the first hint to be revealed.")}</p>`;
     } else if (ui.picking) {
@@ -490,6 +589,9 @@ function renderHost(){
   const people = g && g.people ? g.people : [];
   const person = people.find(p => p.name === ui.target) || null;
   const order = roundOrder();
+  /* フォームに3問以上答えている人だけ出題対象にできる / only people with 3+ filled hints can be subjects */
+  const eligible = people.filter(p => Object.values(p.hints || {}).filter(v => String(v).trim() !== "").length >= 3);
+  const excluded = people.length - eligible.length;
 
   let makeCard = "";
   if (people.length && !r) {
@@ -500,9 +602,13 @@ function renderHost(){
         "答えにする人を選び、使いたいヒントだけを出したい順にタップしてください。タップしなかった項目は出題されません。",
         "Choose who the answer is, then tap only the hints you want to use, in the order you want to reveal them. Untapped items will not be used."
       )}</p>
+      ${excluded > 0 ? `<p class="sub">${T(
+        "回答が3問未満の"+excluded+"人は出題対象から除外しています(回答者としては参加できます)。",
+        excluded+" person(s) with fewer than 3 filled answers are excluded as subjects (they can still play)."
+      )}</p>` : ""}
       <select id="selTarget" style="margin-top:8px">
         <option value="">${T("答えにする人を選ぶ","Select the answer person")}</option>` +
-        people.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("") +
+        eligible.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("") +
       `</select>` +
       (person ? `<div style="margin-top:6px">` +
         (skipped > 0 ? `<p class="sub">${T("空欄の項目"+skipped+"件は自動的に除外しています。","Automatically excluded "+skipped+" blank item(s).")}</p>` : "") +
@@ -546,10 +652,19 @@ function renderHost(){
     roundCard = `<div class="card"><p class="h">${T("答え","Answer")}: ${esc(r.target)} ${rBadge}</p>` +
       routeHtml(order, r.revealed || 0, r.hintValues || {}, true, false, r.target) + ctrl + `</div>`;
 
-    const answered = players.filter(p => p.answers[r.id]);
-    roundCard += `<div class="card"><p class="h">${T("回答状況","Answer status")} (${answered.length}/${players.length} ${T("人","people")})</p>
+    const answerable = players.filter(p => p.name !== r.target);
+    const answered = answerable.filter(p => p.answers[r.id]);
+    roundCard += `<div class="card"><p class="h">${T("回答状況","Answer status")} (${answered.length}/${answerable.length} ${T("人","people")})</p>
       <table><thead><tr><th>${T("名前","Name")}</th><th>${T("回答","Answer")}</th><th>${T("時点","At")}</th><th>${T("判定","Result")}</th></tr></thead><tbody>` +
       players.map(p => {
+        if (p.name === r.target) {
+          const b = r.status === "finished" ? subjectBonus(r.id, r.target, order.length, r.mult, r.practice) : null;
+          const judge = r.status === "finished"
+            ? (r.practice ? `<span class="pill wait">🎯 ${T("出題対象(例題)","Subject (practice)")}</span>`
+                          : `<span class="pill ok">🎯 ${T("出題対象","Subject")} +${b}</span>`)
+            : `<span class="pill wait">🎯 ${T("出題対象","Subject")}</span>`;
+          return `<tr><td>${esc(p.name)}</td><td>-</td><td>-</td><td>${judge}</td></tr>`;
+        }
         const a = p.answers[r.id];
         const judge = a
           ? (a.choice === r.target
