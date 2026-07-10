@@ -7,10 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=DotGothic16&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F4F6F2; --ink:#16232B; --sub:#5B6B70; --line:#D8DED8;
-  --amber:#F5A800; --amber-dk:#8A5B00; --board:#14181D; --dot:#FFB100;
-  --ok:#2E9E5B; --ng:#E4572E; --card:#FFFFFF;
+  /* 諏訪湖の夏: 湖の青緑・深い針葉樹・空 / Lake Suwa summer: lake teal, forest green, sky */
+  --bg:#E9F4F1; --ink:#123239; --sub:#4F7A7E; --line:#CBE2DC;
+  --amber:#1B8C9B; --amber-dk:#0E6672; --board:#0C2B33; --dot:#8FE9F2;
+  --ok:#2E9E5B; --ng:#E0532F; --card:#FFFFFF;
+  /* 組紐カラー / kumihimo braid accent */
+  --himo:#E8582F; --himo2:#F2B33D;
 }
+body{background:linear-gradient(180deg,#DFF0F5 0%, var(--bg) 240px);}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{margin:0; background:var(--bg); color:var(--ink);
   font-family:'M PLUS Rounded 1c',system-ui,sans-serif;}
@@ -18,7 +22,7 @@ body{margin:0; background:var(--bg); color:var(--ink);
 .board{background:var(--board); border-radius:14px; padding:14px 16px;
   color:var(--dot); font-family:'DotGothic16',monospace; letter-spacing:.04em;
   display:flex; justify-content:space-between; align-items:baseline; gap:8px;
-  border-bottom:4px solid var(--amber);}
+  border-bottom:4px solid; border-image:linear-gradient(90deg,var(--himo),var(--himo2),var(--amber)) 1;}
 .board .big{font-size:18px; line-height:1.3;}
 .board .small{font-size:12px; opacity:.9; line-height:1.3; text-align:right;}
 .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
@@ -28,7 +32,7 @@ body{margin:0; background:var(--bg); color:var(--ink);
 .en{opacity:.72; font-size:.92em;}
 button{font-family:inherit; font-weight:800; border:none; border-radius:12px;
   padding:12px 16px; font-size:15px; cursor:pointer; line-height:1.35;}
-.btn-p{background:var(--amber); color:#3A2A00; width:100%;}
+.btn-p{background:var(--amber); color:#fff; width:100%;}
 .btn-p:disabled{background:#E3E6E0; color:#9AA5A0; cursor:default;}
 .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--ink); width:100%;}
 .btn-sm{padding:8px 12px; font-size:13px; border-radius:10px; width:auto;}
@@ -37,10 +41,10 @@ input,select{font-family:inherit; font-size:16px; padding:11px 12px; width:100%;
 .route{position:relative; margin:18px 4px 6px; padding-left:22px;}
 .route::before{content:""; position:absolute; left:8px; top:6px; bottom:6px;
   width:4px; border-radius:2px;
-  background:repeating-linear-gradient(var(--amber) 0 10px, transparent 10px 18px);}
+  background:repeating-linear-gradient(180deg, var(--himo) 0 8px, var(--himo2) 8px 12px, var(--himo) 12px 16px, transparent 16px 24px);}
 .stop{position:relative; padding:0 0 16px;}
 .stop::before{content:""; position:absolute; left:-20px; top:4px; width:12px; height:12px;
-  border-radius:50%; background:#fff; border:3px solid var(--amber);}
+  border-radius:50%; background:#fff; border:3px solid var(--himo);}
 .stop.locked::before{border-color:#C4CCC6; background:#E9EDE8;}
 .stopLabel{font-size:11.5px; color:var(--sub); font-weight:700;}
 .stopVal{font-size:17px; font-weight:800; margin-top:2px;}
@@ -48,24 +52,24 @@ input,select{font-family:inherit; font-size:16px; padding:11px 12px; width:100%;
 .pill{display:inline-block; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800;}
 .pill.ok{background:#E2F3E8; color:var(--ok);}
 .pill.ng{background:#FBE4DC; color:var(--ng);}
-.pill.wait{background:#FFF1CC; color:var(--amber-dk);}
+.pill.wait{background:#DFF3F6; color:var(--amber-dk);}
 .choiceGrid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
 .choice{background:#fff; border:1.5px solid var(--line); border-radius:12px;
   padding:12px 8px; font-size:15px; font-weight:800; color:var(--ink);}
-.choice.sel{border-color:var(--amber); background:#FFF6DF;}
+.choice.sel{border-color:var(--amber); background:#E1F4F0;}
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
 th{color:var(--sub); font-size:11px; text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); line-height:1.3;}
 td{padding:8px 4px; border-bottom:1px solid #EDF0EC; font-weight:700;}
 .r{text-align:right;}
 .rankNum{font-family:'DotGothic16',monospace; font-size:15px;}
-tr.me{background:#FFF6DF;}
+tr.me{background:#E1F4F0;}
 .orderTag{display:inline-flex; align-items:center; justify-content:center;
   min-width:22px; height:22px; border-radius:50%; background:var(--ink); color:#fff;
   font-size:12px; font-weight:800; margin-right:8px;}
 .hintPick{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
   background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
   margin-top:8px; font-size:14px;}
-.hintPick.on{border-color:var(--amber); background:#FFF6DF;}
+.hintPick.on{border-color:var(--amber); background:#E1F4F0;}
 .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
 .brand{font-weight:800; font-size:13.5px; letter-spacing:.02em; line-height:1.3;}
 .link{background:none; border:none; color:var(--sub); font-size:12px; text-decoration:underline; padding:4px; width:auto; flex-shrink:0;}
@@ -80,7 +84,7 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 .ppts{font-family:'DotGothic16',monospace; font-size:13px; color:var(--amber-dk); margin-bottom:4px; min-height:16px;}
 .pbox{border-radius:12px 12px 0 0; background:var(--amber); font-family:'DotGothic16',monospace;
   font-size:22px; color:#3A2A00; display:flex; align-items:flex-start; justify-content:center; padding-top:8px;}
-.pbox.p1{min-height:96px; background:linear-gradient(180deg,#FFD35C,var(--amber));}
+.pbox.p1{min-height:96px; background:linear-gradient(180deg,#FFD35C,var(--himo2)); color:#5C3A00;}
 .pbox.p2{min-height:70px; background:#D7DBD3; color:#4A5257;}
 .pbox.p3{min-height:52px; background:#E5B98A; color:#5C3A16;}
 .finalBadge{animation:pulseB 1.1s ease-in-out infinite;}
@@ -95,6 +99,12 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 .resultBanner.ng .resultBig{color:var(--ng);}
 .resultPts{font-family:'DotGothic16',monospace; font-size:24px; margin-top:6px; color:var(--amber-dk);}
 .resultRank{font-size:14px; font-weight:800; margin-top:6px;}
+.speedPop{margin-top:10px; border-radius:12px; padding:10px 12px; text-align:center;
+  font-weight:800; font-size:16px; color:#fff;
+  background:linear-gradient(90deg,var(--himo),var(--himo2));
+  animation:popIn .5s cubic-bezier(.2,1.4,.4,1) both;}
+.speedPop .big{font-size:20px;}
+@keyframes popIn{0%{transform:scale(.4); opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1); opacity:1}}
 </style>
 </head>
 <body>
@@ -188,6 +198,12 @@ function nameToKey(name){
   return name.replace(/[.#$/\[\]\s]/g, "") + "_" + h.toString(36);
 }
 function pointsFor(total, k, mult){ return Math.max(0, (total - k + 1) * 100) * (mult || 1); }
+/* 正解者の回答速度トップ3ボーナス / speed bonus for top-3 fastest correct answers */
+const SPEED_BONUS = [150, 100, 50];
+function speedRanking(rid, target){
+  return answersFor(rid, target).filter(x => x.a.choice === target);
+}
+function speedBonusFor(pos, mult){ return (SPEED_BONUS[pos - 1] || 0) * (mult || 1); }
 /* 出題対象者へのボーナス: 他の参加者が取り損ねた点数の平均(全員即答なら0、誰も当てられなければ満点相当)
    Subject bonus: average points the others FAILED to earn (0 if everyone answers instantly, full if nobody gets it) */
 function subjectBonus(rid, target, total, mult, practice){
@@ -219,6 +235,14 @@ function computeScores(){
     if (r.practice) return;
     const row = rows.find(x => x.name === r.target);
     if (row) row.score += subjectBonus(r.id, r.target, r.total, r.mult, r.practice);
+  });
+  /* 回答速度トップ3ボーナスを加算 / add speed top-3 bonuses */
+  S.history.forEach(r => {
+    if (r.practice) return;
+    speedRanking(r.id, r.target).slice(0, 3).forEach((x, i) => {
+      const row = rows.find(y => y.name === x.name);
+      if (row) row.score += speedBonusFor(i + 1, r.mult);
+    });
   });
   rows.sort((a,b) => b.score - a.score || a.name.localeCompare(b.name, "ja"));
   let rank = 0, prev = null;
@@ -383,8 +407,8 @@ function renderEntry(){
     </div>
     <p class="sub" id="connStatus" style="margin-top:12px">… ${T("データベースに接続中","Connecting to database")}</p>
     <p class="sub" style="margin-top:16px">${T("遊び方","How to play")}: ${T(
-      "運営がヒントを1つずつ公開します。ヒントが少ないうちに答えるほど高得点(ヒントn個の時点で正解 = (全ヒント数 − n + 1) × 100pt)。回答は各問1回だけ、外すと0点です。",
-      "The host reveals hints one at a time. Answering with fewer hints revealed earns more points (correct with n hints shown = (total hints − n + 1) × 100pt). You may answer once per question; a wrong answer scores 0."
+      "運営がヒントを1つずつ公開します。ヒントが少ないうちに答えるほど高得点(ヒントn個の時点で正解 = (全ヒント数 − n + 1) × 100pt)。さらに正解者の回答が早かった上位3人には 🥇+150 / 🥈+100 / 🥉+50 のスピードボーナス。回答は各問1回だけ、外すと0点です。",
+      "The host reveals hints one at a time. Answering with fewer hints revealed earns more points (correct with n hints shown = (total hints − n + 1) × 100pt). The 3 fastest correct answerers also earn a speed bonus: 🥇+150 / 🥈+100 / 🥉+50. You may answer once per question; a wrong answer scores 0."
     )}</p>`;
 
   /* 名簿の取得(初回のみ) / fetch name list once */
@@ -473,6 +497,21 @@ function renderPlayer(){
   } else if (me.name === r.target) {
     /* 自分が出題対象のとき / when you are the subject of the question */
     const bonus = finished ? subjectBonus(r.id, r.target, total, mult, practice) : null;
+    /* 回答順リスト / live answer-order list for the subject */
+    const ansList = answersFor(r.id, r.target);
+    const orderList = ansList.length
+      ? `<div style="margin-top:12px"><p class="h" style="margin-bottom:4px">👀 ${T("回答順","Answer order")} (${ansList.length}${T("人","")})</p>
+         <table><thead><tr><th>#</th><th>${T("名前","Name")}</th><th>${T("時点","At")}</th>${finished ? `<th>${T("判定","Result")}</th>` : ""}</tr></thead><tbody>` +
+        ansList.map((x, i) => `<tr>
+          <td class="rankNum">${i + 1}</td>
+          <td>${esc(x.name)}</td>
+          <td>${T("ヒント","Hint")}${x.a.k}</td>
+          ${finished ? `<td>${x.a.choice === r.target
+            ? `<span class="pill ok">⭕ ${T("正解","Correct")}</span>`
+            : `<span class="pill ng">❌ ${esc(x.a.choice)}</span>`}</td>` : ""}
+        </tr>`).join("") +
+        `</tbody></table>${finished ? "" : `<p class="sub">${T("誰に投票したかは発表までのお楽しみ。","Who they picked stays secret until the reveal.")}</p>`}</div>`
+      : `<p class="sub" style="margin-top:10px">👀 ${T("まだ誰も回答していません。","Nobody has answered yet.")}</p>`;
     const inner = finished
       ? `<p class="h" style="margin-top:6px">${T("答えは「"+esc(r.target)+"」…つまりあなたでした!","The answer was "+esc(r.target)+" — that's you!")}</p>` +
         (practice
@@ -484,7 +523,7 @@ function renderPlayer(){
            "You can't answer this one. The more everyone struggles, the bigger your bonus. Keep a straight face and wait."
          )}</p>`;
     mid = `<div class="card"><p class="h">${T("この人はだあれ?","Who is this?")} ${badge}</p>` +
-      routeHtml(order, k, r.hintValues || {}, false, finished, r.target) + inner + `</div>`;
+      routeHtml(order, k, r.hintValues || {}, false, finished, r.target) + inner + orderList + `</div>`;
   } else {
     let action = "";
     if (finished) {
@@ -492,14 +531,21 @@ function renderPlayer(){
       if (myAnswer) {
         const ok = myAnswer.choice === r.target;
         const pts = practice ? null : (ok ? pointsFor(total, myAnswer.k, mult) : 0);
-        let rankLine = "";
+        let rankLine = "", popLine = "";
         if (ok) {
-          const correct = answersFor(r.id, r.target).filter(x => x.a.choice === r.target);
+          const correct = speedRanking(r.id, r.target);
           const myPos = correct.findIndex(x => x.name === me.name) + 1;
           rankLine = `<div class="resultRank">🏅 ${T(
             "正解者"+correct.length+"人中 "+myPos+"位(回答順)",
             "#"+myPos+" of "+correct.length+" correct (by speed)"
           )}</div>`;
+          if (!practice && myPos >= 1 && myPos <= 3) {
+            const sb = speedBonusFor(myPos, mult);
+            const medals = ["🥇","🥈","🥉"];
+            popLine = `<div class="speedPop"><span class="big">${medals[myPos-1]} ${T(
+              "今回"+myPos+"位!おめでとう!","You placed #"+myPos+"! Congrats!"
+            )}</span><br>${T("スピードボーナス","Speed bonus")} +${sb}pt</div>`;
+          }
         }
         banner = `<div class="resultBanner ${ok ? "ok" : "ng"}">
           <div class="resultBig">${ok ? "⭕ " + T("正解!","Correct!") : "❌ " + T("不正解…","Wrong...")}</div>
@@ -507,7 +553,7 @@ function renderPlayer(){
             ? `<div class="resultRank">${T("例題のため得点なし","Practice: no points")}</div>`
             : `<div class="resultPts">${ok ? "+" + pts : "0"} pt</div>`}
           ${rankLine}
-        </div>`;
+        </div>${popLine}`;
       }
       action = banner +
         `<p class="h" style="margin-top:10px">${T("答えは「"+esc(r.target)+"」さんでした","The answer was "+esc(r.target))}</p>` +
