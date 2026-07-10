@@ -14,7 +14,7 @@
   /* 組紐カラー / kumihimo braid accent */
   --himo:#E8582F; --himo2:#F2B33D;
 }
-body{background:linear-gradient(180deg,#BFE2F0 0%, var(--bg) 300px);}
+body{background:linear-gradient(180deg,#0E6FA6 0%, #0A5583 45%, #083F63 100%); background-attachment:fixed;}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{margin:0; background:var(--bg); color:var(--ink);
   font-family:'M PLUS Rounded 1c',system-ui,sans-serif;}
@@ -105,195 +105,154 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
   animation:popIn .5s cubic-bezier(.2,1.4,.4,1) both;}
 .speedPop .big{font-size:20px;}
 @keyframes popIn{0%{transform:scale(.4); opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1); opacity:1}}
-/* ---- 全画面の風景背景 / full-screen scenery background ---- */
-.bgScene{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
-.bgScene .land{position:absolute; inset:0; width:100%; height:100%;}
-.wrap{position:relative; z-index:1; background:rgba(235,246,251,.88);
-  border-radius:18px; margin-top:14px; margin-bottom:20px;
-  box-shadow:0 2px 16px rgba(9,60,92,.10);}
-@media (max-width:560px){.wrap{border-radius:0; margin-top:0; margin-bottom:0;}}
-/* ---- 背景を飛ぶ飛行機たち / airplanes crossing the sky ---- */
-.flyer{position:absolute; will-change:transform;}
-@keyframes flyLR{from{transform:translateX(-220px)}to{transform:translateX(calc(100vw + 220px))}}
-@keyframes flyRL{from{transform:translateX(calc(100vw + 220px))}to{transform:translateX(-220px)}}
-.fly1{top:3%;  animation:flyLR 32s  linear infinite; animation-delay:-5s;}
-.fly2{top:7%;  animation:flyLR 17s  linear infinite; animation-delay:-2s;}
-.fly3{top:15%; animation:flyLR 55s  linear infinite; animation-delay:-25s;}
-.fly4{top:10%; animation:flyRL 36s  linear infinite; animation-delay:-12s;}
-.fly5{top:20%; animation:flyLR 44s  linear infinite; animation-delay:-16s;}
-.fly6{top:24%; animation:flyRL 48s  linear infinite; animation-delay:-30s;}
-.fly7{top:13%; animation:flyLR 38s  linear infinite; animation-delay:-18s;}
-.fly8{top:5%;  animation:flyRL 70s linear infinite; animation-delay:-45s;}
-.fly9{top:17%; animation:flyRL 40s  linear infinite; animation-delay:-6s;}
-.fly10{top:27%; animation:flyLR 50s linear infinite; animation-delay:-38s;}
-.flyer .mirror{transform:scaleX(-1); transform-origin:center; transform-box:fill-box;}
+/* ---- 上下の帯 / top & bottom scenery bands ---- */
+.skyband{position:relative; overflow:hidden; height:172px;}
+.skyband .bandart{position:absolute; inset:0; width:100%; height:100%;}
+.shoreband{height:66px; margin-top:20px;}
+.shoreband .bandart{display:block; width:100%; height:100%;}
+.wrap{position:relative; z-index:1;}
+/* 濃い湖面の上に置くテキストは明色に / light text on the deep-lake background */
+.topbar .brand{color:#EAF6FC;}
+.link{color:#B9DCEE;}
+.wrap > p.sub{color:#CFE7F4;}
+/* ---- 飛来する機体と鳥: 周期の一部だけ画面を横切り、残りは休む
+   occasional flybys: cross during a fraction of a long cycle, then rest ---- */
+.flyer{position:absolute; will-change:transform; transform:translateX(-320px); pointer-events:none;}
+.flyer svg{display:block;}
 @keyframes flick{from{opacity:.28}to{opacity:.62}}
 .propDisc{animation:flick .16s linear infinite alternate;}
-/* ---- 旋回する機体(上面形) / circling planes on a motion path ---- */
-.orbitWrap{position:absolute; left:50%; transform:translateX(-50%); pointer-events:none;}
-.ow1{top:15%; width:640px; height:360px;}
-.ow2{top:33%; width:440px; height:250px;}
-.orbiter{position:absolute; left:0; top:0; offset-rotate:auto; will-change:offset-distance;
-  filter:drop-shadow(0 3px 2px rgba(13,43,62,.18));}
-.orb1{offset-path:path('M 320 180 m -270 0 a 270 140 0 1 1 540 0 a 270 140 0 1 1 -540 0');
-  animation:orbitMove 42s linear infinite;}
-.orb2{offset-path:path('M 220 125 m -180 0 a 180 95 0 1 0 360 0 a 180 95 0 1 0 -360 0');
-  animation:orbitMove 27s linear infinite; animation-delay:-9s;}
-@keyframes orbitMove{from{offset-distance:0%}to{offset-distance:100%}}
-@supports not (offset-path: path('M 0 0 L 10 10')){.orbitWrap{display:none;}}
-@media (prefers-reduced-motion: reduce){.flyer,.propDisc,.orbiter{animation:none;}}
+.mirror{transform:scaleX(-1); transform-origin:center; transform-box:fill-box;}
+@keyframes p1{0%{transform:translate(-320px,6px)}16%{transform:translate(calc(100vw + 320px),6px)}100%{transform:translate(calc(100vw + 320px),6px)}}
+.fly1{top:24px; animation:p1 115s linear infinite; animation-delay:-6s;}
+@keyframes p2{0%{transform:translate(-220px,28px)}12%{transform:translate(calc(100vw + 220px),-12px)}100%{transform:translate(calc(100vw + 220px),-12px)}}
+.fly2{top:40px; animation:p2 90s linear infinite; animation-delay:-50s;}
+@keyframes p3{0%{transform:translate(-200px,0)}20%{transform:translate(calc(100vw + 200px),0)}100%{transform:translate(calc(100vw + 200px),0)}}
+.fly3{top:66px; animation:p3 135s linear infinite; animation-delay:-96s;}
+@keyframes p4{0%{transform:translate(calc(100vw + 200px),0)}18%{transform:translate(-200px,0)}100%{transform:translate(-200px,0)}}
+.fly4{top:52px; animation:p4 100s linear infinite; animation-delay:-32s;}
+@keyframes p5{0%{transform:translate(-200px,-12px)}15%{transform:translate(calc(100vw + 200px),16px)}100%{transform:translate(calc(100vw + 200px),16px)}}
+.fly5{top:82px; animation:p5 105s linear infinite; animation-delay:-72s;}
+@keyframes p6{0%{transform:translate(calc(100vw + 200px),18px)}16%{transform:translate(-200px,-12px)}100%{transform:translate(-200px,-12px)}}
+.fly6{top:94px; animation:p6 120s linear infinite; animation-delay:-14s;}
+@keyframes p7{0%{transform:translate(-200px,0)}17%{transform:translate(calc(100vw + 200px),0)}100%{transform:translate(calc(100vw + 200px),0)}}
+.fly7{top:58px; animation:p7 95s linear infinite; animation-delay:-84s;}
+@keyframes p8{0%{transform:translate(calc(100vw + 240px),0)}26%{transform:translate(-240px,10px)}100%{transform:translate(-240px,10px)}}
+.fly8{top:10px; animation:p8 130s linear infinite; animation-delay:-46s;}
+@keyframes p9{0%{transform:translate(calc(100vw + 180px),0)}16%{transform:translate(-180px,0)}100%{transform:translate(-180px,0)}}
+.fly9{top:48px; animation:p9 110s linear infinite; animation-delay:-102s;}
+@keyframes p10{0%{transform:translate(-200px,0)}18%{transform:translate(calc(100vw + 200px),0)}100%{transform:translate(calc(100vw + 200px),0)}}
+.fly10{top:116px; animation:p10 108s linear infinite; animation-delay:-24s;}
+/* カーブを描いて突っ切る2機 / two gently curving passes (top view) */
+@keyframes p11{0%{transform:translate(-240px,-8px) rotate(12deg)}9%{transform:translate(calc(50vw - 35px),18px) rotate(1deg)}18%{transform:translate(calc(100vw + 240px),-6px) rotate(-14deg)}100%{transform:translate(calc(100vw + 240px),-6px) rotate(-14deg)}}
+.fly11{top:16px; animation:p11 98s ease-in-out infinite; animation-delay:-62s;}
+@keyframes p12{0%{transform:translate(calc(100vw + 220px),16px) rotate(10deg)}8%{transform:translate(calc(50vw - 28px),-8px) rotate(0deg)}16%{transform:translate(-220px,10px) rotate(-12deg)}100%{transform:translate(-220px,10px) rotate(-12deg)}}
+.fly12{top:56px; animation:p12 88s ease-in-out infinite; animation-delay:-36s;}
+/* 渡り鳥 / migrating birds */
+@keyframes p13{0%{transform:translate(calc(100vw + 160px),-6px)}30%{transform:translate(-160px,10px)}100%{transform:translate(-160px,10px)}}
+.fly13{top:30px; animation:p13 70s linear infinite; animation-delay:-20s;}
+@keyframes p14{0%{transform:translate(-140px,4px)}26%{transform:translate(calc(100vw + 140px),-6px)}100%{transform:translate(calc(100vw + 140px),-6px)}}
+.fly14{top:100px; animation:p14 82s linear infinite; animation-delay:-58s;}
+.wingFlap{animation:flap .45s ease-in-out infinite alternate; transform-box:fill-box; transform-origin:center;}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(-.5)}}
+@media (prefers-reduced-motion: reduce){.flyer,.propDisc,.wingFlap{animation:none;}}
 </style>
 </head>
 <body>
-<div class="bgScene" aria-hidden="true">
-<svg class="land" viewBox="0 0 800 600" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+<div class="skyband" aria-hidden="true">
+<svg class="bandart" viewBox="0 0 800 190" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#5FA8D8"/><stop offset=".55" stop-color="#9CCDE9"/><stop offset="1" stop-color="#D3EAF4"/>
+  <linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5FA8D8"/><stop offset=".6" stop-color="#9CCDE9"/><stop offset="1" stop-color="#C9E6F2"/>
   </linearGradient>
-  <linearGradient id="lakeG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#2E86BE"/><stop offset=".35" stop-color="#1A6FA8"/><stop offset="1" stop-color="#0B4E7E"/>
+  <linearGradient id="lakeB" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2E86BE"/><stop offset="1" stop-color="#0E5C92"/>
   </linearGradient>
-  <linearGradient id="ridgeFar" x1="0" y1="0" x2="0" y2="1">
+  <linearGradient id="ridgeB1" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#A9C6DB"/><stop offset="1" stop-color="#C2D9E8"/>
   </linearGradient>
-  <linearGradient id="ridgeMid" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#7BA3C4"/><stop offset="1" stop-color="#9BBCD4"/>
+  <linearGradient id="ridgeB2" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#6E99BB"/><stop offset="1" stop-color="#8FB2CC"/>
   </linearGradient>
-  <linearGradient id="ridgeNear" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#5E8CA8"/><stop offset="1" stop-color="#7FA6BE"/>
-  </linearGradient>
-  <linearGradient id="shoreG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#3E9B63"/><stop offset="1" stop-color="#1F7247"/>
-  </linearGradient>
-  <radialGradient id="sunG" cx=".5" cy=".5" r=".5">
+  <radialGradient id="sunB" cx=".5" cy=".5" r=".5">
     <stop offset="0" stop-color="#FFF6D8" stop-opacity=".9"/><stop offset="1" stop-color="#FFF6D8" stop-opacity="0"/>
   </radialGradient>
-  <!-- 針葉樹(3層+陰影) / layered conifer -->
   <g id="pine">
-    <rect x="-2.6" y="26" width="5.2" height="12" rx="1.6" fill="#5C3F26"/>
-    <path d="M0 -34 L15 -6 L8 -6 L20 16 L11 16 L24 34 L-24 34 L-11 16 L-20 16 L-8 -6 L-15 -6 Z" fill="#1C5B41"/>
-    <path d="M0 -34 L15 -6 L8 -6 L20 16 L11 16 L24 34 L0 34 Z" fill="#154A34"/>
-    <path d="M0 -34 L-15 -6 L-8 -6 L-6 -6 L0 -22 Z" fill="#2F7A54"/>
-    <path d="M0 -20 L-11 2 L-4 2 L0 -8 Z" fill="#2F7A54" opacity=".8"/>
-    <path d="M0 2 L-16 22 L-7 22 L0 12 Z" fill="#2F7A54" opacity=".65"/>
+    <rect x="-2.2" y="21" width="4.4" height="9" rx="1.4" fill="#5C3F26"/>
+    <path d="M0 -27 L12 -5 L6.5 -5 L16 13 L9 13 L19 27 L-19 27 L-9 13 L-16 13 L-6.5 -5 L-12 -5 Z" fill="#1C5B41"/>
+    <path d="M0 -27 L12 -5 L6.5 -5 L16 13 L9 13 L19 27 L0 27 Z" fill="#154A34"/>
+    <path d="M0 -27 L-12 -5 L-5 -5 L0 -17 Z" fill="#2F7A54"/>
+    <path d="M0 -15 L-9 2 L-3 2 L0 -6 Z" fill="#2F7A54" opacity=".8"/>
+    <path d="M0 2 L-13 17 L-6 17 L0 9 Z" fill="#2F7A54" opacity=".65"/>
   </g>
-  <!-- 広葉樹 / deciduous -->
   <g id="oak">
-    <rect x="-3" y="10" width="6" height="16" rx="2" fill="#5C3F26"/>
-    <path d="M-3 14 L-10 4 M3 13 L9 5" stroke="#5C3F26" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="-11" cy="0" r="11" fill="#2E8B57"/>
-    <circle cx="11" cy="1" r="10" fill="#277B4C"/>
-    <circle cx="0" cy="-9" r="13" fill="#35A066"/>
-    <circle cx="-4" cy="-13" r="7" fill="#4CBF80" opacity=".9"/>
-    <path d="M-18 6 A 16 12 0 0 0 14 9 A 12 10 0 0 1 -18 6 Z" fill="#1D6640" opacity=".7"/>
+    <rect x="-2.4" y="8" width="4.8" height="13" rx="1.8" fill="#5C3F26"/>
+    <circle cx="-8.5" cy="0" r="8.5" fill="#2E8B57"/>
+    <circle cx="8.5" cy="1" r="8" fill="#277B4C"/>
+    <circle cx="0" cy="-7" r="10" fill="#35A066"/>
+    <circle cx="-3" cy="-10" r="5.5" fill="#4CBF80" opacity=".9"/>
+    <path d="M-14 5 A 12 9 0 0 0 11 7 A 9 8 0 0 1 -14 5 Z" fill="#1D6640" opacity=".7"/>
   </g>
 </defs>
-<rect width="800" height="600" fill="url(#skyG)"/>
-<circle cx="655" cy="82" r="88" fill="url(#sunG)"/>
-<circle cx="655" cy="82" r="26" fill="#FFF3C4" opacity=".95"/>
-<!-- 雲 / soft clouds -->
+<rect width="800" height="190" fill="url(#skyB)"/>
+<circle cx="662" cy="46" r="62" fill="url(#sunB)"/>
+<circle cx="662" cy="46" r="19" fill="#FFF3C4" opacity=".95"/>
 <g fill="#FFFFFF">
-  <g opacity=".92"><ellipse cx="150" cy="86" rx="52" ry="14"/><ellipse cx="118" cy="80" rx="26" ry="11"/><ellipse cx="182" cy="76" rx="30" ry="12"/><rect x="98" y="86" width="104" height="12" rx="6"/></g>
-  <g opacity=".85"><ellipse cx="420" cy="56" rx="40" ry="11"/><ellipse cx="446" cy="48" rx="22" ry="9"/><rect x="380" y="56" width="80" height="10" rx="5"/></g>
-  <g opacity=".8"><ellipse cx="600" cy="150" rx="46" ry="11"/><ellipse cx="630" cy="142" rx="24" ry="9"/><rect x="556" y="150" width="90" height="10" rx="5"/></g>
+  <g opacity=".92"><ellipse cx="146" cy="42" rx="42" ry="11"/><ellipse cx="120" cy="37" rx="21" ry="9"/><ellipse cx="172" cy="34" rx="24" ry="9"/><rect x="104" y="42" width="84" height="10" rx="5"/></g>
+  <g opacity=".82"><ellipse cx="430" cy="30" rx="32" ry="9"/><ellipse cx="452" cy="24" rx="18" ry="7"/><rect x="398" y="30" width="64" height="8" rx="4"/></g>
 </g>
-<g fill="#E8F4FA" opacity=".7"><ellipse cx="152" cy="94" rx="46" ry="8"/><ellipse cx="418" cy="62" rx="34" ry="7"/></g>
-<!-- 渡り鳥 / birds -->
-<g stroke="#274A5E" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".85">
-  <path d="M250 168 q5 -7 10 0 q5 -7 10 0"/><path d="M282 156 q4 -6 8 0 q4 -6 8 0"/><path d="M266 146 q3 -5 7 0 q3 -5 7 0"/>
-</g>
-<!-- 最奥の稜線(霞) / farthest hazy ridge -->
-<path d="M0 296 L60 252 L118 284 L196 236 L262 282 L336 246 L420 292 L800 292 L800 320 L0 320 Z" fill="url(#ridgeFar)"/>
-<!-- 主峰(雪渓と陰影) / main peaks with snowfields and facets -->
+<path d="M0 108 L58 76 L112 104 L188 66 L252 102 L318 78 L392 108 L800 108 L800 128 L0 128 Z" fill="url(#ridgeB1)"/>
 <g>
-  <path d="M120 300 L258 176 L300 214 L352 190 L470 300 Z" fill="url(#ridgeMid)"/>
-  <path d="M258 176 L300 214 L352 190 L470 300 L300 300 Z" fill="#6A93B5" opacity=".85"/>
-  <path d="M258 176 L240 196 L252 194 L262 206 L274 196 L284 206 L296 210 L300 214 L280 192 Z" fill="#F4FAFD"/>
-  <path d="M352 190 L338 206 L350 202 L360 214 L372 206 L360 196 Z" fill="#F4FAFD" opacity=".95"/>
-  <path d="M258 176 L300 214 L296 210 L284 206 L274 196 L262 206 L252 194 L240 196 Z" fill="#FFFFFF"/>
+  <path d="M120 112 L232 34 L272 66 L322 44 L430 112 Z" fill="url(#ridgeB2)"/>
+  <path d="M232 34 L272 66 L322 44 L430 112 L272 112 Z" fill="#5E89AC" opacity=".85"/>
+  <path d="M232 34 L218 50 L230 46 L240 58 L252 48 L262 56 L272 62 L272 66 L252 44 Z" fill="#F4FAFD"/>
+  <path d="M322 44 L310 58 L320 54 L330 64 L340 55 L330 48 Z" fill="#F4FAFD" opacity=".95"/>
 </g>
 <g>
-  <path d="M430 300 L560 190 L618 246 L700 208 L800 296 L800 320 L430 320 Z" fill="url(#ridgeNear)"/>
-  <path d="M560 190 L618 246 L700 208 L800 296 L620 300 Z" fill="#527E9C" opacity=".8"/>
-  <path d="M560 190 L546 208 L558 204 L566 216 L578 206 L588 214 L596 212 Z" fill="#F4FAFD"/>
-  <path d="M700 208 L688 222 L698 218 L706 228 L716 218 Z" fill="#F4FAFD" opacity=".9"/>
+  <path d="M420 112 L536 42 L590 88 L664 56 L760 112 Z" fill="url(#ridgeB2)"/>
+  <path d="M536 42 L590 88 L664 56 L760 112 L590 112 Z" fill="#527E9C" opacity=".8"/>
+  <path d="M536 42 L524 58 L534 54 L542 64 L554 54 L562 60 L570 58 Z" fill="#F4FAFD"/>
+  <path d="M664 56 L654 68 L662 64 L670 74 L680 64 Z" fill="#F4FAFD" opacity=".9"/>
 </g>
-<path d="M0 300 L96 232 L170 300 Z" fill="url(#ridgeNear)"/>
-<path d="M96 232 L170 300 L96 300 Z" fill="#527E9C" opacity=".75"/>
-<path d="M96 232 L86 246 L96 242 L104 252 L112 244 Z" fill="#F4FAFD" opacity=".95"/>
-<!-- 湖 / the lake -->
-<rect x="0" y="298" width="800" height="230" fill="url(#lakeG)"/>
-<!-- 山の映り込み / mountain reflections -->
-<g opacity=".16" fill="#0D2B3E">
-  <path d="M120 298 L258 380 L352 366 L470 298 Z"/>
-  <path d="M430 298 L560 372 L700 352 L800 300 L800 298 Z"/>
+<path d="M0 112 L74 58 L136 112 Z" fill="url(#ridgeB2)"/>
+<path d="M74 58 L136 112 L74 112 Z" fill="#527E9C" opacity=".75"/>
+<path d="M74 58 L66 70 L74 66 L82 74 L88 66 Z" fill="#F4FAFD" opacity=".95"/>
+<rect x="0" y="110" width="800" height="80" fill="url(#lakeB)"/>
+<g opacity=".15" fill="#0D2B3E">
+  <path d="M120 110 L232 152 L322 142 L430 110 Z"/><path d="M420 110 L536 150 L664 138 L760 110 Z"/>
 </g>
-<!-- 太陽の光の道 / sun glitter path -->
-<g stroke="#CFEDFB" stroke-linecap="round" opacity=".7">
-  <line x1="636" y1="316" x2="676" y2="316" stroke-width="3"/>
-  <line x1="628" y1="332" x2="686" y2="332" stroke-width="3.6"/>
-  <line x1="640" y1="350" x2="700" y2="350" stroke-width="4"/>
-  <line x1="626" y1="372" x2="672" y2="372" stroke-width="4"/>
-  <line x1="648" y1="396" x2="716" y2="396" stroke-width="5"/>
+<g stroke="#CFEDFB" stroke-linecap="round" opacity=".65">
+  <line x1="648" y1="120" x2="682" y2="120" stroke-width="2.6"/>
+  <line x1="640" y1="132" x2="692" y2="132" stroke-width="3"/>
+  <line x1="652" y1="146" x2="706" y2="146" stroke-width="3.6"/>
 </g>
-<g stroke="#7FC4E8" stroke-width="2.4" opacity=".5" stroke-linecap="round">
-  <line x1="110" y1="346" x2="196" y2="346"/><line x1="250" y1="392" x2="340" y2="392"/>
-  <line x1="420" y1="356" x2="500" y2="356"/><line x1="80" y1="430" x2="180" y2="430"/>
-  <line x1="330" y1="452" x2="410" y2="452"/><line x1="540" y1="440" x2="640" y2="440"/>
+<g stroke="#7FC4E8" stroke-width="2.2" opacity=".5" stroke-linecap="round">
+  <line x1="110" y1="128" x2="184" y2="128"/><line x1="260" y1="150" x2="342" y2="150"/><line x1="420" y1="132" x2="492" y2="132"/>
 </g>
-<!-- ヨット2艘 / two sailboats -->
-<g transform="translate(500,352)">
+<g transform="translate(492,124) scale(.85)">
   <path d="M-2 18 Q0 14 6 14 L34 14 Q38 15 36 20 Q34 24 28 24 L4 24 Q-2 24 -2 18 Z" fill="#B23A22"/>
   <path d="M-2 18 Q0 14 6 14 L34 14 L33 17 L2 17 Z" fill="#D8502F"/>
-  <line x1="17" y1="14" x2="17" y2="-16" stroke="#4A3521" stroke-width="1.6"/>
-  <path d="M17 -15 L32 12 L18 12 Z" fill="#FBFDFE" stroke="#9FB4C0" stroke-width=".8"/>
-  <path d="M15 -12 L4 12 L14 12 Z" fill="#F2E3C8" stroke="#C9B896" stroke-width=".8"/>
-  <path d="M0 26 Q17 30 36 26" stroke="#0D3D63" stroke-width="2" fill="none" opacity=".5"/>
+  <line x1="17" y1="14" x2="17" y2="-14" stroke="#4A3521" stroke-width="1.6"/>
+  <path d="M17 -13 L30 12 L18 12 Z" fill="#FBFDFE" stroke="#9FB4C0" stroke-width=".8"/>
+  <path d="M15 -10 L5 12 L14 12 Z" fill="#F2E3C8" stroke="#C9B896" stroke-width=".8"/>
 </g>
-<g transform="translate(210,410) scale(.8)">
-  <path d="M-2 18 Q0 14 6 14 L34 14 Q38 15 36 20 Q34 24 28 24 L4 24 Q-2 24 -2 18 Z" fill="#12557F"/>
-  <line x1="17" y1="14" x2="17" y2="-16" stroke="#4A3521" stroke-width="1.6"/>
-  <path d="M17 -15 L32 12 L18 12 Z" fill="#FBFDFE" stroke="#9FB4C0" stroke-width=".8"/>
-  <path d="M15 -12 L4 12 L14 12 Z" fill="#E8582F" stroke="#B23A22" stroke-width=".8"/>
+<g transform="translate(46,140) scale(.9)"><use href="#pine"/></g>
+<g transform="translate(94,148) scale(1.1)"><use href="#pine"/></g>
+<g transform="translate(140,154) scale(.8)"><use href="#pine"/></g>
+<g transform="translate(20,158) scale(.65)"><use href="#pine"/></g>
+<g transform="translate(178,162) scale(.7)"><use href="#oak"/></g>
+<g transform="translate(688,142) scale(1.05)"><use href="#pine"/></g>
+<g transform="translate(742,150) scale(.9)"><use href="#pine"/></g>
+<g transform="translate(636,156) scale(.75)"><use href="#pine"/></g>
+<g transform="translate(778,160) scale(.6)"><use href="#pine"/></g>
+<g transform="translate(716,166) scale(.7)"><use href="#oak"/></g>
+<g transform="translate(112,120)">
+  <ellipse cx="0" cy="0" rx="4" ry="3.1" fill="#E8582F"/><circle cx="3.4" cy="-2" r="2.2" fill="#E8582F"/>
+  <path d="M-3.4 -.4 L-7.6 -2.6 L-6.8 .8 Z" fill="#B23A22"/><circle cx="4.1" cy="-2.5" r=".6" fill="#1A1A1A"/>
+  <path d="M5.5 -1.9 L7.8 -1.4 L5.5 -.9 Z" fill="#F2B33D"/>
 </g>
-<!-- 両岸の森 / forests on both shores -->
-<g transform="translate(46,486) scale(1.0)"><use href="#pine"/></g>
-<g transform="translate(104,494) scale(1.25)"><use href="#pine"/></g>
-<g transform="translate(160,502) scale(.9)"><use href="#pine"/></g>
-<g transform="translate(22,510) scale(.75)"><use href="#pine"/></g>
-<g transform="translate(196,516) scale(.65)"><use href="#pine"/></g>
-<g transform="translate(138,522) scale(.8)"><use href="#oak"/></g>
-<g transform="translate(676,492) scale(1.2)"><use href="#pine"/></g>
-<g transform="translate(742,500) scale(1.0)"><use href="#pine"/></g>
-<g transform="translate(622,506) scale(.85)"><use href="#pine"/></g>
-<g transform="translate(782,514) scale(.7)"><use href="#pine"/></g>
-<g transform="translate(712,522) scale(.85)"><use href="#oak"/></g>
-<!-- 森の小鳥 / songbirds in the trees -->
-<g transform="translate(120,462)">
-  <ellipse cx="0" cy="0" rx="4.6" ry="3.6" fill="#E8582F"/>
-  <circle cx="4" cy="-2.4" r="2.6" fill="#E8582F"/>
-  <path d="M-4 -.5 L-9 -3 L-8 1 Z" fill="#B23A22"/>
-  <circle cx="4.8" cy="-3" r=".7" fill="#1A1A1A"/>
-  <path d="M6.4 -2.2 L9 -1.6 L6.4 -1 Z" fill="#F2B33D"/>
-</g>
-<g transform="translate(700,458) scale(-1,1)">
-  <ellipse cx="0" cy="0" rx="4.6" ry="3.6" fill="#F2B33D"/>
-  <circle cx="4" cy="-2.4" r="2.6" fill="#F2B33D"/>
-  <path d="M-4 -.5 L-9 -3 L-8 1 Z" fill="#D89A20"/>
-  <circle cx="4.8" cy="-3" r=".7" fill="#1A1A1A"/>
-  <path d="M6.4 -2.2 L9 -1.6 L6.4 -1 Z" fill="#E8582F"/>
-</g>
-<!-- 手前の岸 / near shore with grass -->
-<path d="M0 566 Q160 546 340 560 Q520 574 680 558 Q760 552 800 560 L800 600 L0 600 Z" fill="url(#shoreG)"/>
-<g stroke="#2E8B57" stroke-width="2" stroke-linecap="round" opacity=".85">
-  <path d="M60 566 l-3 -10 M66 566 l0 -12 M72 566 l3 -9"/>
-  <path d="M300 570 l-3 -10 M306 570 l0 -12 M312 570 l3 -9"/>
-  <path d="M560 566 l-3 -10 M566 566 l0 -12 M572 566 l3 -9"/>
-  <path d="M720 570 l-3 -9 M726 570 l0 -11 M732 570 l3 -8"/>
-</g>
+<path d="M0 178 Q200 168 400 176 Q600 184 800 174 L800 190 L0 190 Z" fill="#177A54"/>
 </svg>
-<svg class="flyer fly1" viewBox="-92 -24 222 58" width="190" aria-hidden="true"><defs>
+<div class="flyer fly1" aria-hidden="true"><svg viewBox="-92 -24 222 58" width="150"><defs>
 <linearGradient id="alFus" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#FDFEFF"/><stop offset=".6" stop-color="#E8EFF4"/><stop offset="1" stop-color="#B9C9D4"/>
 </linearGradient>
@@ -322,8 +281,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <circle cx="41.6" cy="19" r="3.4" fill="#1F2F3A"/>
 <circle cx="41.6" cy="19" r="2" fill="#3E5666"/>
 <path d="M14 -18 L11 -18 L17 -8 L20 -8 Z" fill="#FFFFFF" opacity=".5"/>
-</g></svg>
-<svg class="flyer fly2" viewBox="-30 -18 116 46" width="108" aria-hidden="true"><defs>
+</g></svg></div>
+<div class="flyer fly2" aria-hidden="true"><svg viewBox="-30 -18 116 46" width="95" style="transform:rotate(-6deg)"><defs>
 <linearGradient id="ftBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#C6D2DB"/><stop offset=".55" stop-color="#9EAEBB"/><stop offset="1" stop-color="#77808C"/>
 </linearGradient>
@@ -346,8 +305,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M44 9.6 Q46 12.6 50 12.6 Q54 12.6 55 9.8 Q50 10.4 44 9.6 Z" fill="#4E5A66"/>
 <circle cx="70" cy="6" r="1.1" fill="#2E3A44"/>
 <path d="M-2 4.4 L2 4 L2 8 L-2 7.6 Q-3.4 6 -2 4.4 Z" fill="#4E5A66"/>
-</g></svg>
-<svg class="flyer fly3" viewBox="-4 -13 96 34" width="92" aria-hidden="true"><defs>
+</g></svg></div>
+<div class="flyer fly3" aria-hidden="true"><svg viewBox="-4 -13 96 34" width="82"><defs>
 <linearGradient id="bwBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#D7E6EC"/><stop offset=".5" stop-color="#9FC1CE"/><stop offset="1" stop-color="#5F8B9D"/>
 </linearGradient>
@@ -362,8 +321,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <ellipse cx="54.4" cy="-3.4" rx="3" ry="1.7" fill="#33505E"/>
 <path d="M20 1 L15 -8 Q14.4 -9.6 16.6 -9.6 L18 -9.6 Q20 -9.6 21 -7.6 L24.6 .4 Z" fill="#5F8B9D" stroke="#4E7181" stroke-width=".7"/>
 <path d="M8 5 Q13 2.6 19 2 Q14 4.4 12 7.4 Q9.4 6 8 5 Z" fill="#33505E"/>
-</g></svg>
-<svg class="flyer fly4" viewBox="0 -14 66 42" width="62" aria-hidden="true"><g class="mirror"><defs>
+</g></svg></div>
+<div class="flyer fly4" aria-hidden="true"><svg viewBox="0 -14 66 42" width="56"><g class="mirror"><defs>
 <linearGradient id="rpBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#F0704B"/><stop offset=".5" stop-color="#DF4E2A"/><stop offset="1" stop-color="#AC3418"/>
 </linearGradient>
@@ -382,8 +341,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <ellipse class="propDisc" cx="61.4" cy="6.1" rx="1.2" ry="9.5" fill="#274A5E" opacity=".5"/>
 <circle cx="34" cy="13.4" r="2.8" fill="#2E3A44"/><circle cx="34" cy="13.4" r="1.2" fill="#7E8B96"/>
 <circle cx="20" cy="13.4" r="2.4" fill="#2E3A44"/>
-</g></g></svg>
-<svg class="flyer fly5" viewBox="-2 -12 64 38" width="60" aria-hidden="true"><defs>
+</g></g></svg></div>
+<div class="flyer fly5" aria-hidden="true"><svg viewBox="-2 -12 64 38" width="55" style="transform:rotate(5deg)"><defs>
 <linearGradient id="cbBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#FBD75A"/><stop offset=".55" stop-color="#F2C043"/><stop offset="1" stop-color="#CB9722"/>
 </linearGradient>
@@ -404,8 +363,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <line x1="34" y1="12" x2="35" y2="16.6" stroke="#96700F" stroke-width="1.6"/>
 <circle cx="22" cy="18.4" r="3.4" fill="#2E3A44"/><circle cx="22" cy="18.4" r="1.4" fill="#7E8B96"/>
 <circle cx="36" cy="18.4" r="3.4" fill="#2E3A44"/><circle cx="36" cy="18.4" r="1.4" fill="#7E8B96"/>
-</g></svg>
-<svg class="flyer fly6" viewBox="-2 -10 64 32" width="58" aria-hidden="true"><g class="mirror"><defs>
+</g></svg></div>
+<div class="flyer fly6" aria-hidden="true"><svg viewBox="-2 -10 64 32" width="52" style="transform:rotate(7deg)"><g class="mirror"><defs>
 <linearGradient id="bpBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#43B075"/><stop offset=".55" stop-color="#2E9459"/><stop offset="1" stop-color="#1C6B3D"/>
 </linearGradient>
@@ -430,8 +389,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <ellipse class="propDisc" cx="55.4" cy="8.2" rx="1.2" ry="10" fill="#274A5E" opacity=".5"/>
 <circle cx="22" cy="14.6" r="3" fill="#2E3A44"/><circle cx="22" cy="14.6" r="1.2" fill="#7E8B96"/>
 <circle cx="10" cy="13.6" r="1.8" fill="#2E3A44"/>
-</g></g></svg>
-<svg class="flyer fly7" viewBox="-2 -14 82 30" width="80" aria-hidden="true"><defs>
+</g></g></svg></div>
+<div class="flyer fly7" aria-hidden="true"><svg viewBox="-2 -14 82 30" width="72"><defs>
 <linearGradient id="twBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#FDFEFF"/><stop offset=".6" stop-color="#E4ECF1"/><stop offset="1" stop-color="#AEC0CC"/>
 </linearGradient>
@@ -448,8 +407,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M42 -2.8 Q42 -4.6 45 -4.6 L49 -4.6 Q52 -4.6 52 -2.8 L52 3.6 Q47 4.4 42 3.6 Z" fill="#1B7FA8" stroke="#0F5B7C" stroke-width=".9"/>
 <ellipse class="propDisc" cx="33.4" cy="-.6" rx="1.1" ry="8.4" fill="#274A5E" opacity=".5"/>
 <ellipse class="propDisc" cx="53.4" cy="-.6" rx="1.1" ry="8.4" fill="#274A5E" opacity=".5"/>
-</g></svg>
-<svg class="flyer fly8" viewBox="-26 -11 114 24" width="112" aria-hidden="true"><g class="mirror"><defs>
+</g></svg></div>
+<div class="flyer fly8" aria-hidden="true"><svg viewBox="-26 -11 114 24" width="100"><g class="mirror"><defs>
 <linearGradient id="glBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#FEFEFE"/><stop offset="1" stop-color="#D8E2E9"/>
 </linearGradient>
@@ -464,8 +423,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M38 3.4 L78 -.6 L78 .2 L38 4.2 Z" fill="#E8582F"/>
 <path d="M22 2.8 Q26 -.6 31 .2 Q34 .8 32 2 Q27 3 24 3.4 Z" fill="#3B5468"/>
 <path d="M23.4 2.2 Q26.6 -.2 30 .4 Q26.6 .8 24.6 2.4 Z" fill="#9CC4DE"/>
-</g></g></svg>
-<svg class="flyer fly9" viewBox="0 -13 60 38" width="56" aria-hidden="true"><g class="mirror"><defs>
+</g></g></svg></div>
+<div class="flyer fly9" aria-hidden="true"><svg viewBox="0 -13 60 38" width="50"><g class="mirror"><defs>
 <linearGradient id="ppBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#A97FD4"/><stop offset=".55" stop-color="#8B5DB8"/><stop offset="1" stop-color="#5F3A87"/>
 </linearGradient>
@@ -482,8 +441,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M50 4.4 Q53.6 4.8 53.6 6.2 Q53.6 7.6 50 8 Z" fill="#D9DFE4" stroke="#7E8B96" stroke-width=".7"/>
 <ellipse class="propDisc" cx="54.6" cy="6.2" rx="1.2" ry="9.2" fill="#274A5E" opacity=".5"/>
 <circle cx="30" cy="12.6" r="2.6" fill="#2E3A44"/><circle cx="30" cy="12.6" r="1.1" fill="#7E8B96"/>
-</g></g></svg>
-<svg class="flyer fly10" viewBox="-2 -10 60 34" width="62" aria-hidden="true"><defs>
+</g></g></svg></div>
+<div class="flyer fly10" aria-hidden="true"><svg viewBox="-2 -10 60 34" width="56"><defs>
 <linearGradient id="spBody" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#6FB9E4"/><stop offset=".55" stop-color="#4FA0D2"/><stop offset="1" stop-color="#2F76A6"/>
 </linearGradient>
@@ -504,9 +463,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <line x1="24" y1="11.8" x2="26" y2="16.4" stroke="#1F567C" stroke-width="1.2"/>
 <path d="M10 17.6 Q11 15.4 16 15.4 L44 15.4 Q49 15.6 48.4 18 Q47.6 20.4 42 20.4 L15 20.4 Q10.4 20.2 10 17.6 Z" fill="#EAF5FB" stroke="#1F567C" stroke-width=".9"/>
 <path d="M11 16.8 L47 16.8 L47 17.6 L11 17.6 Z" fill="#FFFFFF"/>
-</g></svg>
-<div class="orbitWrap ow1" aria-hidden="true">
-<svg class="orbiter orb1" viewBox="-20 -40 66 80" width="70"><defs>
+</g></svg></div>
+<div class="flyer fly11" aria-hidden="true"><svg viewBox="-20 -40 66 80" width="60"><defs>
 <linearGradient id="ocWing" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#FDFEFF"/><stop offset=".5" stop-color="#EDF2F5"/><stop offset="1" stop-color="#FDFEFF"/>
 </linearGradient>
@@ -524,10 +482,8 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M-6 -4.9 L2 -5.1 L2 5.1 L-6 4.9 Z" fill="#E8582F" opacity=".85"/>
 <circle cx="34" cy="0" r="1.8" fill="#5E6B77"/>
 <ellipse cx="41.6" cy="0" rx="1.1" ry="10" fill="#274A5E" opacity=".45"/>
-</g></svg>
-</div>
-<div class="orbitWrap ow2" aria-hidden="true">
-<svg class="orbiter orb2" viewBox="-17 -33 57 66" width="56"><defs>
+</g></svg></div>
+<div class="flyer fly12" aria-hidden="true"><svg viewBox="-17 -33 57 66" width="46"><g class="mirror"><defs>
 <linearGradient id="oaWing" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0" stop-color="#F0704B"/><stop offset=".5" stop-color="#E0532F"/><stop offset="1" stop-color="#F0704B"/>
 </linearGradient>
@@ -544,10 +500,37 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <path d="M-8 -3 L4 -3.6 L4 3.6 L-8 3 Z" fill="#FDFEFF" opacity=".85"/>
 <circle cx="29" cy="0" r="1.6" fill="#5E6B77"/>
 <ellipse cx="35.6" cy="0" rx="1" ry="8.4" fill="#274A5E" opacity=".45"/>
-</g></svg>
-</div>
+</g></g></svg></div>
+<div class="flyer fly13" aria-hidden="true"><svg viewBox="-14 -16 96 40" width="88"><g class="mirror"><g transform="translate(0,4) scale(1.0)"><g><path class="wingFlap" style="animation-delay:0s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(20,-4) scale(0.9)"><g><path class="wingFlap" style="animation-delay:0.14s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(40,8) scale(0.85)"><g><path class="wingFlap" style="animation-delay:0.28s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(58,0) scale(0.95)"><g><path class="wingFlap" style="animation-delay:0.07s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(70,10) scale(0.75)"><g><path class="wingFlap" style="animation-delay:0.2s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g></g></svg></div>
+<div class="flyer fly14" aria-hidden="true"><svg viewBox="-12 -12 66 28" width="58"><g transform="translate(0,0) scale(0.9)"><g><path class="wingFlap" style="animation-delay:0.1s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(22,6) scale(0.8)"><g><path class="wingFlap" style="animation-delay:0.3s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(40,-2) scale(0.7)"><g><path class="wingFlap" style="animation-delay:0s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g></svg></div>
 </div>
 <div id="app" class="wrap"></div>
+<div class="shoreband" aria-hidden="true">
+<svg class="bandart" viewBox="0 0 800 74" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+<g stroke="#8FDCFF" stroke-width="2" opacity=".35" stroke-linecap="round">
+  <line x1="90" y1="8" x2="170" y2="8"/><line x1="420" y1="4" x2="500" y2="4"/><line x1="620" y1="10" x2="690" y2="10"/>
+</g>
+<g transform="translate(70,40) scale(.9)"><use href="#pine"/></g>
+<g transform="translate(130,46) scale(1.1)"><use href="#pine"/></g>
+<g transform="translate(186,52) scale(.75)"><use href="#pine"/></g>
+<g transform="translate(250,56) scale(.7)"><use href="#oak"/></g>
+<g transform="translate(560,50) scale(.8)"><use href="#oak"/></g>
+<g transform="translate(624,44) scale(1.0)"><use href="#pine"/></g>
+<g transform="translate(686,50) scale(.85)"><use href="#pine"/></g>
+<g transform="translate(744,56) scale(.65)"><use href="#pine"/></g>
+<g transform="translate(400,42)">
+  <ellipse cx="0" cy="0" rx="4" ry="3.1" fill="#F2B33D"/><circle cx="-3.4" cy="-2" r="2.2" fill="#F2B33D"/>
+  <path d="M3.4 -.4 L7.6 -2.6 L6.8 .8 Z" fill="#D89A20"/><circle cx="-4.1" cy="-2.5" r=".6" fill="#1A1A1A"/>
+  <path d="M-5.5 -1.9 L-7.8 -1.4 L-5.5 -.9 Z" fill="#E8582F"/>
+</g>
+<path d="M0 62 Q200 52 400 60 Q600 68 800 58 L800 74 L0 74 Z" fill="#177A54"/>
+<g stroke="#2E8B57" stroke-width="1.8" stroke-linecap="round" opacity=".9">
+  <path d="M90 62 l-2 -8 M95 62 l0 -10 M100 62 l2 -7"/>
+  <path d="M330 64 l-2 -8 M335 64 l0 -10 M340 64 l2 -7"/>
+  <path d="M700 62 l-2 -8 M705 62 l0 -9 M710 62 l2 -7"/>
+</g>
+</svg>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
