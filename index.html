@@ -8,13 +8,13 @@
 <style>
 :root{
   /* 諏訪湖の夏: 深い湖の青・針葉樹の緑・夏空 / Lake Suwa summer: deep lake blue, conifer green, summer sky */
-  --bg:#E0EFF5; --ink:#0D2B3E; --sub:#42708A; --line:#C2DCE8;
-  --amber:#0E76AC; --amber-dk:#095E8C; --board:#062A3E; --dot:#8FDCFF;
-  --ok:#2E9E5B; --ng:#E0532F; --card:#FFFFFF;
+  --bg:#FBF4E7; --ink:#3A2A16; --sub:#8A7455; --line:#EAD9B8;
+  --amber:#E0762A; --amber-dk:#B8591A; --board:#2B2013; --dot:#FFC77A;
+  --ok:#2E9E5B; --ng:#D9482E; --card:#FFFCF4;
   /* 組紐カラー / kumihimo braid accent */
   --himo:#E8582F; --himo2:#F2B33D;
 }
-body{background:linear-gradient(180deg,#0E6FA6 0%, #0A5583 45%, #083F63 100%); background-attachment:fixed;}
+body{background:#0A5583; display:flex; flex-direction:column; min-height:100vh;}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{margin:0; background:var(--bg); color:var(--ink);
   font-family:'M PLUS Rounded 1c',system-ui,sans-serif;}
@@ -26,7 +26,7 @@ body{margin:0; background:var(--bg); color:var(--ink);
 .board .big{font-size:18px; line-height:1.3;}
 .board .small{font-size:12px; opacity:.9; line-height:1.3; text-align:right;}
 .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
-  padding:14px 16px; margin-top:12px;}
+  padding:14px 16px; margin-top:12px; box-shadow:0 3px 10px rgba(8,50,80,.16);}
 .h{font-size:15px; font-weight:800; margin:0 0 8px; line-height:1.4;}
 .sub{color:var(--sub); font-size:12.5px; line-height:1.6; margin:4px 0;}
 .en{opacity:.72; font-size:.92em;}
@@ -52,31 +52,31 @@ input,select{font-family:inherit; font-size:16px; padding:11px 12px; width:100%;
 .pill{display:inline-block; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800;}
 .pill.ok{background:#E2F3E8; color:var(--ok);}
 .pill.ng{background:#FBE4DC; color:var(--ng);}
-.pill.wait{background:#DCEEF8; color:var(--amber-dk);}
+.pill.wait{background:#F7E6C8; color:var(--amber-dk);}
 .choiceGrid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
 .choice{background:#fff; border:1.5px solid var(--line); border-radius:12px;
   padding:12px 8px; font-size:15px; font-weight:800; color:var(--ink);}
-.choice.sel{border-color:var(--amber); background:#E0F1FA;}
+.choice.sel{border-color:var(--amber); background:#FBE7D2;}
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
 th{color:var(--sub); font-size:11px; text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); line-height:1.3;}
-td{padding:8px 4px; border-bottom:1px solid #EDF0EC; font-weight:700;}
+td{padding:8px 4px; border-bottom:1px solid #F0E4C8; font-weight:700;}
 .r{text-align:right;}
 .rankNum{font-family:'DotGothic16',monospace; font-size:15px;}
-tr.me{background:#E0F1FA;}
+tr.me{background:#FBE7D2;}
 .orderTag{display:inline-flex; align-items:center; justify-content:center;
   min-width:22px; height:22px; border-radius:50%; background:var(--ink); color:#fff;
   font-size:12px; font-weight:800; margin-right:8px;}
 .hintPick{display:flex; align-items:center; gap:8px; width:100%; text-align:left;
   background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
   margin-top:8px; font-size:14px;}
-.hintPick.on{border-color:var(--amber); background:#E0F1FA;}
+.hintPick.on{border-color:var(--amber); background:#FBE7D2;}
 .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
 .brand{font-weight:800; font-size:13.5px; letter-spacing:.02em; line-height:1.3;}
 .link{background:none; border:none; color:var(--sub); font-size:12px; text-decoration:underline; padding:4px; width:auto; flex-shrink:0;}
 .bigPts{font-family:'DotGothic16',monospace; font-size:28px; color:var(--amber-dk);}
 .row2{display:flex; justify-content:space-between; align-items:center;}
 .err{color:var(--ng);}
-code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
+code{background:#F2E6CC; border-radius:6px; padding:1px 6px; font-size:12px;}
 .podium{display:flex; align-items:flex-end; gap:8px; margin-top:16px;}
 .pcol{flex:1; text-align:center; min-width:0;}
 .pname{font-weight:800; font-size:13.5px; margin-bottom:6px; min-height:20px; word-break:break-all;}
@@ -106,15 +106,17 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 .speedPop .big{font-size:20px;}
 @keyframes popIn{0%{transform:scale(.4); opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1); opacity:1}}
 /* ---- 上下の帯 / top & bottom scenery bands ---- */
-.skyband{position:relative; overflow:hidden; height:172px;}
+.skyband{position:relative; overflow:hidden; height:172px; flex:0 0 auto;}
+.lakebg{flex:1 0 auto; background:linear-gradient(180deg,#0E5C92 0%, #0A5583 40%, #083F63 100%);
+  border-radius:0 0 28px 28px; padding-bottom:30px;}
 .skyband .bandart{position:absolute; inset:0; width:100%; height:100%;}
-.shoreband{height:66px; margin-top:20px;}
+.shoreband{flex:0 0 auto; height:70px; margin-top:10px;}
 .shoreband .bandart{display:block; width:100%; height:100%;}
 .wrap{position:relative; z-index:1;}
 /* 濃い湖面の上に置くテキストは明色に / light text on the deep-lake background */
 .topbar .brand{color:#EAF6FC;}
 .link{color:#B9DCEE;}
-.wrap > p.sub{color:#CFE7F4;}
+.wrap > p.sub{color:#E8F4FB;}
 /* ---- 飛来する機体と鳥: 周期の一部だけ画面を横切り、残りは休む
    occasional flybys: cross during a fraction of a long cycle, then rest ---- */
 .flyer{position:absolute; will-change:transform; transform:translateX(-320px); pointer-events:none;}
@@ -250,7 +252,6 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
   <path d="M-3.4 -.4 L-7.6 -2.6 L-6.8 .8 Z" fill="#B23A22"/><circle cx="4.1" cy="-2.5" r=".6" fill="#1A1A1A"/>
   <path d="M5.5 -1.9 L7.8 -1.4 L5.5 -.9 Z" fill="#F2B33D"/>
 </g>
-<path d="M0 178 Q200 168 400 176 Q600 184 800 174 L800 190 L0 190 Z" fill="#177A54"/>
 </svg>
 <div class="flyer fly1" aria-hidden="true"><svg viewBox="-92 -24 222 58" width="150"><defs>
 <linearGradient id="alFus" x1="0" y1="0" x2="0" y2="1">
@@ -504,7 +505,7 @@ code{background:#EDF0EC; border-radius:6px; padding:1px 6px; font-size:12px;}
 <div class="flyer fly13" aria-hidden="true"><svg viewBox="-14 -16 96 40" width="88"><g class="mirror"><g transform="translate(0,4) scale(1.0)"><g><path class="wingFlap" style="animation-delay:0s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(20,-4) scale(0.9)"><g><path class="wingFlap" style="animation-delay:0.14s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(40,8) scale(0.85)"><g><path class="wingFlap" style="animation-delay:0.28s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(58,0) scale(0.95)"><g><path class="wingFlap" style="animation-delay:0.07s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(70,10) scale(0.75)"><g><path class="wingFlap" style="animation-delay:0.2s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g></g></svg></div>
 <div class="flyer fly14" aria-hidden="true"><svg viewBox="-12 -12 66 28" width="58"><g transform="translate(0,0) scale(0.9)"><g><path class="wingFlap" style="animation-delay:0.1s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(22,6) scale(0.8)"><g><path class="wingFlap" style="animation-delay:0.3s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g><g transform="translate(40,-2) scale(0.7)"><g><path class="wingFlap" style="animation-delay:0s" d="M-9 2 Q-4 -5 0 .5 Q4 -5 9 2" stroke="#243F52" stroke-width="1.7" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="1" rx="1.6" ry="1.1" fill="#243F52"/></g></g></svg></div>
 </div>
-<div id="app" class="wrap"></div>
+<div class="lakebg"><div id="app" class="wrap"></div></div>
 <div class="shoreband" aria-hidden="true">
 <svg class="bandart" viewBox="0 0 800 74" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
 <g stroke="#8FDCFF" stroke-width="2" opacity=".35" stroke-linecap="round">
@@ -827,11 +828,13 @@ function renderEntry(){
       ${ui.pinError ? `<p class="sub err" style="white-space:pre-line">${esc(ui.pinError)}</p>` : ""}
       <button class="btn-o" id="btnHost" style="margin-top:10px">${T("運営コンソールを開く","Open Host Console")}</button>
     </div>
-    <p class="sub" id="connStatus" style="margin-top:12px">… ${T("データベースに接続中","Connecting to database")}</p>
-    <p class="sub" style="margin-top:16px">${T("遊び方","How to play")}: ${T(
+    <div class="card">
+    <p class="sub" id="connStatus">… ${T("データベースに接続中","Connecting to database")}</p>
+    <p class="sub" style="margin-top:8px">${T("遊び方","How to play")}: ${T(
       "運営がヒントを1つずつ公開します。ヒントが少ないうちに答えるほど高得点(ヒントn個の時点で正解 = (全ヒント数 − n + 1) × 100pt)。さらに正解者の回答が早かった上位3人には 🥇+150 / 🥈+100 / 🥉+50 のスピードボーナス。回答は各問1回だけ、外すと0点です。",
       "The host reveals hints one at a time. Answering with fewer hints revealed earns more points (correct with n hints shown = (total hints − n + 1) × 100pt). The 3 fastest correct answerers also earn a speed bonus: 🥇+150 / 🥈+100 / 🥉+50. You may answer once per question; a wrong answer scores 0."
-    )}</p>`;
+    )}</p>
+    </div>`;
 
   /* 名簿の取得(初回のみ) / fetch name list once */
   if (entryPeople === null && !entryPeopleLoading) {
@@ -1027,11 +1030,13 @@ function renderPlayer(){
     `<div class="topbar"><span class="brand">${T("バスレク この人はだあれ?","Bus Game: Who Is This?")}</span>
      <button class="link" id="btnLeave">${T("名前を変える","Change name")}</button></div>` +
     boardHtml(boardLeft, boardRight) +
-    `<div class="card row2">
-      <div><div class="sub">${T(esc(me.name)+" さんの得点", esc(me.name)+"'s score")}</div><div class="bigPts">${myRow ? myRow.score : 0} pt</div></div>
-      <div style="text-align:right"><div class="sub">${T("暫定順位","Current rank")}</div><div class="bigPts" style="font-size:15px; color:var(--sub)">${T("非公開","Hidden")}</div></div>
+    `<div class="card">
+      <div class="row2">
+        <div><div class="sub">${T(esc(me.name)+" さんの得点", esc(me.name)+"'s score")}</div><div class="bigPts">${myRow ? myRow.score : 0} pt</div></div>
+        <div style="text-align:right"><div class="sub">${T("暫定順位","Current rank")}</div><div class="bigPts" style="font-size:15px; color:var(--sub)">${T("非公開","Hidden")}</div></div>
+      </div>
+      <p class="sub" style="margin:8px 0 0">${T("順位は運営が発表するまで表示されません。","Rankings are only shown when the host reveals them.")}</p>
     </div>` +
-    `<p class="sub" style="margin:4px 6px">${T("順位は運営が発表するまで表示されません。","Rankings are only shown when the host reveals them.")}</p>` +
     mid;
 
   document.getElementById("btnLeave").onclick = () => { mode = "entry"; ui.picking = false; ui.sel = null; render(); };
