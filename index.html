@@ -979,10 +979,6 @@ function renderEntry(){
     </div>
     <div class="card">
     <p class="sub" id="connStatus">… ${T("データベースに接続中","Connecting to database")}</p>
-    <p class="sub" style="margin-top:8px">${T("遊び方","How to play")}: ${T(
-      "運営がヒントを1つずつ公開します。ヒントが少ないうちに答えるほど高得点(ヒントn個の時点で正解 = (全ヒント数 − n + 1) × 100pt)。さらに正解者の回答が早かった上位3人には 🥇+300 / 🥈+200 / 🥉+100 のスピードボーナス。回答は各問1回だけ、外すと0点です。",
-      "The host reveals hints one at a time. Answering with fewer hints revealed earns more points (correct with n hints shown = (total hints − n + 1) × 100pt). The 3 fastest correct answerers also earn a speed bonus: 🥇+300 / 🥈+200 / 🥉+100. You may answer once per question; a wrong answer scores 0."
-    )}</p>
     </div>`;
 
   /* 名簿の取得(初回のみ) / fetch name list once */
