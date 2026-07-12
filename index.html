@@ -743,10 +743,35 @@ function explainError(e){
 let S = { game: null, round: null, history: [], players: {}, scene: null }; // synced from Firebase
 let mode = "entry";           // entry | player | host
 let me = null;                // {name, key}
-let ui = { picking: false, sel: null, target: "", order: [], practice: false, mult: 1, final: false, pinError: "", entryName: "", entryPin: "" };
+let ui = { picking: false, sel: null, target: "", order: [], practice: false, mult: 1, final: false, pinError: "", entryName: "", entryPin: "", pendingCsv: null };
 let subscribed = false;
 let entryPeople = null;        // トップ画面用の名簿キャッシュ / cached name list for the entry screen
 let entryPeopleLoading = false;
+let entryNotice = "";          // 名簿更新などの通知 / notice shown on the entry screen
+
+/* 端末ID: 同じ名前の「本人の入り直し」と「別人の重複」を区別する
+   device id: distinguishes the same person rejoining from someone else taking the name */
+let _memDevice = null;
+function deviceId(){
+  try {
+    let d = localStorage.getItem("busrec_device");
+    if (!d) { d = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem("busrec_device", d); }
+    return d;
+  } catch (e) {
+    if (!_memDevice) _memDevice = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return _memDevice;
+  }
+}
+
+/* 在席フラグを明示的に解放 / explicitly release the presence flag */
+function releasePresence(){
+  if (!me || !roomRef) return;
+  try {
+    const r = roomRef.child("players/" + me.key + "/online");
+    r.onDisconnect().cancel();
+    r.remove();
+  } catch (e) {}
+}
 
 function subscribe() {
   if (subscribed || !roomRef) return;
@@ -758,6 +783,17 @@ function subscribe() {
     S.history = v.history ? Object.values(v.history) : [];
     S.players = v.players || {};
     S.scene = v.scene || null;
+    /* 運営が「全員リセット」した場合、参加者を名前選択画面へ戻す
+       if the host reset everyone, send players back to the name-selection screen */
+    const epoch = (v.game && v.game.epoch) || 0;
+    if (mode === "player" && me && epoch !== (me.epoch || 0)) {
+      releasePresence();
+      mode = "entry"; me = null; entryPeople = null; ui.picking = false; ui.sel = null;
+      entryNotice = T("運営が名簿を更新しました。もう一度名前を選んで参加してください。",
+                      "The host updated the roster. Please select your name and join again.");
+      render();
+      return;
+    }
     if (mode !== "entry") render();
   });
 }
@@ -826,7 +862,7 @@ function roundOrder(){ return S.round && S.round.order ? S.round.order : []; }
 function answersFor(rid, target){
   return playerList()
     .filter(p => p.name !== target && p.answers[rid])
-    .map(p => ({ name: p.name, a: p.answers[rid] }))
+    .map(p => ({ name: p.name, key: p.key, a: p.answers[rid] }))
     .sort((x, y) => (x.a.ts || 0) - (y.a.ts || 0));
 }
 function qNum(){ return S.history.length + (S.round ? 1 : 0); }
@@ -946,7 +982,8 @@ function renderSetupGuide(){
 function renderEntry(){
   $app.innerHTML =
     `<div style="padding-top:24px"></div>` +
-    boardHtml(T("この人はだあれ?","Who Is This?"), T("バスレク","Bus Game")) + `
+    boardHtml(T("この人はだあれ?","Who Is This?"), T("バスレク","Bus Game")) +
+    (entryNotice ? `<div class="card"><p class="sub" style="color:var(--ng); font-weight:800">⚠ ${entryNotice}</p></div>` : "") + `
     <div class="card">
       <p class="h">${T("参加者として入る","Join as a Player")}</p>
       <p class="sub">${T(
@@ -1001,10 +1038,41 @@ function renderEntry(){
     const n = ui.entryName.trim();
     if (!n) return;
     try {
+      /* 名簿が更新されていないか確認 / verify the roster hasn't changed */
+      const psnap = await roomRef.child("game/people").get();
+      const pv = psnap.val();
+      const plist = pv ? (Array.isArray(pv) ? pv : Object.values(pv)) : [];
+      if (plist.length && !plist.some(p => p && p.name === n)) {
+        ui.entryName = "";
+        entryPeople = null;
+        entryNotice = T("名簿が更新されています。名前を選び直してください。","The roster has changed. Please re-select your name.");
+        render(); return;
+      }
+      const esnap = await roomRef.child("game/epoch").get();
       const key = nameToKey(n);
+      const dev = deviceId();
       const snap = await roomRef.child("players/" + key).get();
-      if (!snap.exists()) await roomRef.child("players/" + key).set({ name: n, joinedAt: Date.now() });
-      me = { name: n, key };
+      if (snap.exists()) {
+        const rec = snap.val();
+        /* いまオンラインの端末がある名前はブロック(自分自身の入り直しは許可)
+           block if someone is currently online with this name (rejoining from the same device is fine) */
+        if (rec.online && rec.online !== dev) {
+          ui.pinError = "";
+          entryNotice = T(
+            "「" + n + "」は現在ほかの人が使用中です。自分の名前を選んでください(回線落ちなどでロックが残っている場合は、運営に「接続解除」を頼んでください)。",
+            "'" + n + "' is currently in use by someone else. Please select your own name (if a stale lock remains after a dropped connection, ask the host to release it)."
+          );
+          render(); return;
+        }
+      } else {
+        await roomRef.child("players/" + key).set({ name: n, joinedAt: Date.now() });
+      }
+      /* 在席フラグ: 切断時はサーバー側で自動削除 / presence flag, auto-removed on disconnect */
+      const onlineRef = roomRef.child("players/" + key + "/online");
+      await onlineRef.set(dev);
+      onlineRef.onDisconnect().remove();
+      me = { name: n, key, epoch: esnap.val() || 0 };
+      entryNotice = "";
       mode = "player"; subscribe(); render();
     } catch (e) {
       ui.pinError = explainError(e); render();
@@ -1104,11 +1172,11 @@ function renderPlayer(){
         let rankLine = "", popLine = "";
         if (ok) {
           const correct = speedRanking(r.id, r.target);
-          const myPos = correct.findIndex(x => x.name === me.name) + 1;
-          rankLine = `<div class="resultRank">🏅 ${T(
+          const myPos = correct.findIndex(x => x.key === me.key) + 1;
+          rankLine = myPos >= 1 ? `<div class="resultRank">🏅 ${T(
             "正解者"+correct.length+"人中 "+myPos+"位(回答順)",
             "#"+myPos+" of "+correct.length+" correct (by speed)"
-          )}</div>`;
+          )}</div>` : "";
           if (!practice && myPos >= 1 && myPos <= 3) {
             const sb = speedBonusFor(myPos, mult);
             const medals = ["🥇","🥈","🥉"];
@@ -1132,12 +1200,13 @@ function renderPlayer(){
           : `<p class="sub">${T("今回は回答しませんでした。","You did not answer this round.")}</p>`);
     } else if (myAnswer) {
       const ans = answersFor(r.id, r.target);
-      const myPos = ans.findIndex(x => x.name === me.name) + 1;
+      const myPos = ans.findIndex(x => x.key === me.key) + 1;
+      const speedLine = myPos >= 1
+        ? T("あなたの回答速度: 現在"+ans.length+"人中 "+myPos+"番目",
+            "Your answer speed: #"+myPos+" of "+ans.length+" so far")
+        : T("現在"+ans.length+"人が回答済み","So far "+ans.length+" have answered");
       action = `<span class="pill wait">${T("回答済み","Answered")}: ${esc(myAnswer.choice)} (${T("ヒント"+myAnswer.k+"個の時点","at "+myAnswer.k+" hint(s)")})</span>
-        <p class="sub" style="margin-top:8px">⚡ ${T(
-          "あなたの回答速度: 現在"+ans.length+"人中 "+myPos+"番目",
-          "Your answer speed: #"+myPos+" of "+ans.length+" so far"
-        )}</p>
+        <p class="sub" style="margin-top:8px">⚡ ${speedLine}</p>
         <p class="sub">${T("答えの発表を待ちましょう。","Wait for the answer to be revealed.")}</p>`;
     } else if (k < 1) {
       action = `<p class="sub">${T("最初のヒントが公開されるまでお待ちください。","Please wait for the first hint to be revealed.")}</p>`;
@@ -1184,7 +1253,7 @@ function renderPlayer(){
     </div>` +
     mid;
 
-  document.getElementById("btnLeave").onclick = () => { mode = "entry"; ui.picking = false; ui.sel = null; render(); };
+  document.getElementById("btnLeave").onclick = () => { releasePresence(); me = null; mode = "entry"; ui.picking = false; ui.sel = null; render(); };
   const open = document.getElementById("btnOpenPick");
   if (open) open.onclick = () => { ui.picking = true; render(); };
   const cancel = document.getElementById("btnCancel");
@@ -1210,6 +1279,8 @@ function renderHost(){
   /* フォームに3問以上答えている人だけ出題対象にできる / only people with 3+ filled hints can be subjects */
   const eligible = people.filter(p => Object.values(p.hints || {}).filter(v => String(v).trim() !== "").length >= 3);
   const excluded = people.length - eligible.length;
+  const usedTargets = {};
+  S.history.forEach(h => { usedTargets[h.target] = (usedTargets[h.target] || 0) + 1; });
 
   let makeCard = "";
   if (people.length && !r) {
@@ -1226,7 +1297,7 @@ function renderHost(){
       )}</p>` : ""}
       <select id="selTarget" style="margin-top:8px">
         <option value="">${T("答えにする人を選ぶ","Select the answer person")}</option>` +
-        eligible.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("") +
+        eligible.map(p => `<option value="${esc(p.name)}" ${ui.target === p.name ? "selected" : ""}>${esc(p.name)}${usedTargets[p.name] ? " ✓" + T("出題済み","asked") + (usedTargets[p.name] > 1 ? "×" + usedTargets[p.name] : "") : ""}</option>`).join("") +
       `</select>` +
       (person ? `<div style="margin-top:6px">` +
         (skipped > 0 ? `<p class="sub">${T("空欄の項目"+skipped+"件は自動的に除外しています。","Automatically excluded "+skipped+" blank item(s).")}</p>` : "") +
@@ -1316,6 +1387,31 @@ function renderHost(){
       : `<p class="sub">🎉 ${T("すべて発表しました!","All revealed!")}</p>`) +
       `<button class="btn-o" id="btnSceneEnd" style="margin-top:8px">${T("演出を終了(通常画面に戻す)","End display (back to normal)")}</button>`;
   }
+  /* 出題履歴 / question history for the host */
+  const historyCard = S.history.length
+    ? `<div class="card"><p class="h">📜 ${T("出題履歴","Question History")} (${S.history.length}${T("問","")})</p>
+       <table><thead><tr><th>#</th><th>${T("答え","Answer")}</th><th>${T("ヒント","Hints")}</th><th>${T("種別","Type")}</th></tr></thead><tbody>` +
+      S.history.map((h, i) => {
+        const tag = h.practice
+          ? `<span class="pill wait">${T("例題","Practice")}</span>`
+          : ((h.mult || 1) > 1 ? `<span class="pill" style="background:#FFE3B0;color:#8A5B1A">${h.mult}x</span>` : `<span class="pill ok">${T("通常","Normal")}</span>`);
+        return `<tr><td class="rankNum">${i + 1}</td><td>${esc(h.target)}</td><td>${h.total}</td><td>${tag}</td></tr>`;
+      }).join("") + `</tbody></table></div>`
+    : "";
+
+  /* 参加者管理 / player management (release a name for device changes) */
+  const playersCard = players.length
+    ? `<div class="card"><p class="h">👥 ${T("参加者管理","Players")} (${players.length}${T("人","")})</p>
+       <p class="sub">${T(
+         "回線落ちなどで名前のロックが残ってしまった場合、「接続解除」でその名前を再び使えるようにできます。",
+         "If a dropped connection leaves a name locked, 'Release' makes it available again."
+       )}</p>
+       <table><thead><tr><th>${T("名前","Name")}</th><th class="r">${T("操作","Action")}</th></tr></thead><tbody>` +
+      players.map(p => `<tr><td>${esc(p.name)}</td>
+        <td class="r">${p.online ? `<span class="pill ok">${T("接続中","Online")}</span> ` : `<span class="pill wait">${T("離席","Away")}</span> `}<button class="btn-o btn-sm" data-release="${esc(p.key)}">${T("接続解除","Release")}</button></td></tr>`).join("") +
+      `</tbody></table></div>`
+    : "";
+
   const sceneCard = `<div class="card"><p class="h">🎬 ${T("演出","Presentation")}</p>
     <p class="sub">${T(
       "発動すると全参加者の画面がこの表示に切り替わります。問題の進行中は使わず、問題と問題の間で使ってください。結果発表は3位→2位→1位の順に、あなたのボタン操作で1段階ずつ公開されます。",
@@ -1336,8 +1432,19 @@ function renderHost(){
           "1列目=名前、2列目以降=ヒントのCSVをアップロードしてください。",
           "Upload a CSV where column 1 = name and the remaining columns = hints."
         )}</p>`) +
-    `<input type="file" id="inCsv" accept=".csv,text/csv" style="margin-top:8px"></div>` +
-    makeCard + roundCard + sceneCard +
+    (ui.pendingCsv
+      ? `<p class="sub" style="margin-top:8px"><b>${T(
+          "新しいCSVを読み込みました: "+ui.pendingCsv.people.length+"人 ・ ヒント"+ui.pendingCsv.cols.length+"種類。反映方法を選んでください。",
+          "New CSV loaded: "+ui.pendingCsv.people.length+" people, "+ui.pendingCsv.cols.length+" hint types. Choose how to apply it."
+        )}</b></p>
+        <button class="btn-p" id="btnCsvKeep" style="margin-top:8px">${T(
+          "参加者の得点・回答を保持して更新","Update, keeping everyone's scores & answers")}</button>
+        <button class="btn-o" id="btnCsvReset" style="margin-top:8px">${T(
+          "全員リセットして更新(参加者は名前選択からやり直し)","Update & reset everyone (players re-select their names)")}</button>
+        <button class="link" id="btnCsvCancel" style="margin-top:4px">${T("キャンセル","Cancel")}</button>`
+      : `<input type="file" id="inCsv" accept=".csv,text/csv" style="margin-top:8px">`) +
+    `</div>` +
+    makeCard + roundCard + sceneCard + historyCard + playersCard +
     `<div class="card"><p class="h">${T("全体ランキング","Overall Leaderboard")}</p>${leaderboardHtml(scores, null)}</div>
      <div class="card"><p class="h">${T("リセット","Reset")}</p>
       <p class="sub">${T(
@@ -1386,14 +1493,41 @@ function renderHost(){
         ));
         return;
       }
-      await roomRef.child("game/cols").set(hintCols);
-      await roomRef.child("game/people").set(ppl);
-      ui.target = ""; ui.order = [];
-      alert(T("CSVを読み込みました","CSV loaded") + `: ${ppl.length}${T("人","people")} ・ ${T("ヒント","hints")}${hintCols.length}${T("種類","types")}`);
+      ui.pendingCsv = { cols: hintCols, people: ppl };
+      render();
     } catch (err) {
       alert(T("CSVの取り込みに失敗しました。","Failed to import the CSV.") + "\n\n" + explainError(err));
     }
   };
+  const csvKeep = document.getElementById("btnCsvKeep");
+  if (csvKeep) csvKeep.onclick = async () => {
+    const pc = ui.pendingCsv;
+    if (!pc) return;
+    await roomRef.child("game/cols").set(pc.cols);
+    await roomRef.child("game/people").set(pc.people);
+    ui.pendingCsv = null; ui.target = ""; ui.order = [];
+    alert(T("参加者データを保持したままCSVを更新しました。","CSV updated; player data kept."));
+  };
+  const csvReset = document.getElementById("btnCsvReset");
+  if (csvReset) csvReset.onclick = async () => {
+    const pc = ui.pendingCsv;
+    if (!pc) return;
+    if (!confirm(T(
+      "全参加者の得点・回答・名簿を消去し、参加者の画面を名前選択に戻します。よろしいですか?",
+      "This erases all players' scores/answers and sends everyone back to name selection. Continue?"
+    ))) return;
+    await roomRef.child("round").remove();
+    await roomRef.child("history").remove();
+    await roomRef.child("players").remove();
+    await roomRef.child("scene").remove();
+    await roomRef.child("game/cols").set(pc.cols);
+    await roomRef.child("game/people").set(pc.people);
+    await roomRef.child("game/epoch").set(Date.now());
+    ui.pendingCsv = null; ui.target = ""; ui.order = []; ui.practice = false; ui.mult = 1; ui.final = false;
+    alert(T("CSVを更新し、全員をリセットしました。","CSV updated and everyone was reset."));
+  };
+  const csvCancel = document.getElementById("btnCsvCancel");
+  if (csvCancel) csvCancel.onclick = () => { ui.pendingCsv = null; render(); };
   const selT = document.getElementById("selTarget");
   if (selT) selT.onchange = e => { ui.target = e.target.value; ui.order = []; render(); };
   const chkP = document.getElementById("chkPractice");
@@ -1445,6 +1579,15 @@ function renderHost(){
   };
   const next = document.getElementById("btnNext");
   if (next) next.onclick = () => roomRef.child("round").remove();
+  document.querySelectorAll("[data-release]").forEach(b => b.onclick = async () => {
+    const key = b.dataset.release;
+    if (!confirm(T(
+      "この名前の接続ロックを解除します。よろしいですか?",
+      "Release the connection lock on this name?"
+    ))) return;
+    await roomRef.child("players/" + key + "/online").remove();
+    alert(T("解除しました。","Released."));
+  });
   document.getElementById("btnReset").onclick = async () => {
     if (!confirm(T(
       "CSVデータを含め、すべて完全に初期化します(残るのは運営の暗証番号だけです)。よろしいですか?",
@@ -1456,6 +1599,7 @@ function renderHost(){
     await roomRef.child("game/cols").remove();
     await roomRef.child("game/people").remove();
     await roomRef.child("scene").remove();
+    await roomRef.child("game/epoch").set(Date.now());
     ui.target = ""; ui.order = []; ui.practice = false; ui.mult = 1; ui.final = false;
   };
 }
