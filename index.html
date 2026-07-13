@@ -1504,10 +1504,17 @@ function renderHost(){
   if (csvKeep) csvKeep.onclick = async () => {
     const pc = ui.pendingCsv;
     if (!pc) return;
-    await roomRef.child("game/cols").set(pc.cols);
-    await roomRef.child("game/people").set(pc.people);
+    /* 先に選択UIを閉じてから書き込む(途中の同期再描画で残らないように)
+       close the chooser first so mid-write re-renders don't resurrect it */
     ui.pendingCsv = null; ui.target = ""; ui.order = [];
-    alert(T("参加者データを保持したままCSVを更新しました。","CSV updated; player data kept."));
+    render();
+    try {
+      await roomRef.child("game/cols").set(pc.cols);
+      await roomRef.child("game/people").set(pc.people);
+      alert(T("参加者データを保持したままCSVを更新しました。","CSV updated; player data kept."));
+    } catch (e) {
+      alert(T("更新に失敗しました。","Update failed.") + "\n\n" + explainError(e));
+    }
   };
   const csvReset = document.getElementById("btnCsvReset");
   if (csvReset) csvReset.onclick = async () => {
@@ -1517,15 +1524,20 @@ function renderHost(){
       "全参加者の得点・回答・名簿を消去し、参加者の画面を名前選択に戻します。よろしいですか?",
       "This erases all players' scores/answers and sends everyone back to name selection. Continue?"
     ))) return;
-    await roomRef.child("round").remove();
-    await roomRef.child("history").remove();
-    await roomRef.child("players").remove();
-    await roomRef.child("scene").remove();
-    await roomRef.child("game/cols").set(pc.cols);
-    await roomRef.child("game/people").set(pc.people);
-    await roomRef.child("game/epoch").set(Date.now());
     ui.pendingCsv = null; ui.target = ""; ui.order = []; ui.practice = false; ui.mult = 1; ui.final = false;
-    alert(T("CSVを更新し、全員をリセットしました。","CSV updated and everyone was reset."));
+    render();
+    try {
+      await roomRef.child("round").remove();
+      await roomRef.child("history").remove();
+      await roomRef.child("players").remove();
+      await roomRef.child("scene").remove();
+      await roomRef.child("game/cols").set(pc.cols);
+      await roomRef.child("game/people").set(pc.people);
+      await roomRef.child("game/epoch").set(Date.now());
+      alert(T("CSVを更新し、全員をリセットしました。","CSV updated and everyone was reset."));
+    } catch (e) {
+      alert(T("更新に失敗しました。","Update failed.") + "\n\n" + explainError(e));
+    }
   };
   const csvCancel = document.getElementById("btnCsvCancel");
   if (csvCancel) csvCancel.onclick = () => { ui.pendingCsv = null; render(); };
