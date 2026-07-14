@@ -684,6 +684,7 @@ code{background:#F2E6CC; border-radius:6px; padding:1px 6px; font-size:12px;}
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 /* ================================================================
    ▼▼▼ セットアップ / SETUP: ここを自分のFirebase設定に書き換える
@@ -1429,8 +1430,8 @@ function renderHost(){
     (people.length
       ? `<p class="sub">${T(people.length+"人 ・ ヒント"+cols.length+"種類", people.length+" people, "+cols.length+" hint types")} (${cols.map(esc).join(" / ")})</p>`
       : `<p class="sub">${T(
-          "1列目=名前、2列目以降=ヒントのCSVをアップロードしてください。",
-          "Upload a CSV where column 1 = name and the remaining columns = hints."
+          "1列目=名前、2列目以降=ヒントのExcel(xlsx)またはCSVをアップロードしてください。ExcelはそのままでOKです。",
+          "Upload an Excel (xlsx) or CSV file where column 1 = name and the remaining columns = hints. Excel files work as-is."
         )}</p>`) +
     (ui.pendingCsv
       ? `<p class="sub" style="margin-top:8px"><b>${T(
@@ -1442,7 +1443,7 @@ function renderHost(){
         <button class="btn-o" id="btnCsvReset" style="margin-top:8px">${T(
           "全員リセットして更新(参加者は名前選択からやり直し)","Update & reset everyone (players re-select their names)")}</button>
         <button class="link" id="btnCsvCancel" style="margin-top:4px">${T("キャンセル","Cancel")}</button>`
-      : `<input type="file" id="inCsv" accept=".csv,text/csv" style="margin-top:8px">`) +
+      : `<input type="file" id="inCsv" accept=".csv,.xlsx,.xls" style="margin-top:8px">`) +
     `</div>` +
     makeCard + roundCard + sceneCard + historyCard + playersCard +
     `<div class="card"><p class="h">${T("全体ランキング","Overall Leaderboard")}</p>${leaderboardHtml(scores, null)}</div>
@@ -1459,7 +1460,34 @@ function renderHost(){
     const f = e.target.files[0];
     if (!f) return;
     try {
-      const rows = parseCSV(await f.text());
+      let rows;
+      if (/\.(xlsx|xls)$/i.test(f.name)) {
+        /* Excelを直接読む / read Excel directly */
+        if (typeof XLSX === "undefined") {
+          alert(T("Excel読み込みライブラリを取得できませんでした。通信環境を確認するか、CSVで保存し直してください。",
+                  "Couldn't load the Excel library. Check your connection or re-save as CSV."));
+          return;
+        }
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" })
+          .map(r => r.map(c => String(c ?? "")))
+          .filter(r => r.some(x => x.trim() !== ""));
+      } else {
+        /* CSV: UTF-8で読み、化けていればShift_JIS(Excel書き出し)として読み直す
+           try UTF-8 first; fall back to Shift_JIS for Excel-exported CSVs */
+        const buf = await f.arrayBuffer();
+        let text;
+        try {
+          text = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+        } catch (_) {
+          text = new TextDecoder("shift_jis").decode(buf);
+        }
+        if (text.includes("\uFFFD")) {
+          try { text = new TextDecoder("shift_jis").decode(buf); } catch (_) {}
+        }
+        rows = parseCSV(text);
+      }
       if (rows.length < 2) {
         alert(T(
           "CSVを読み込めませんでした。1行目が見出し、2行目以降がデータになっているか確認してください。",
