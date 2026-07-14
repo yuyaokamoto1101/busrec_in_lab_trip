@@ -1498,8 +1498,8 @@ function renderHost(){
       /* Firebaseのキーに使えない文字 . # $ / [ ] を全角に置換し、空・重複も解消
          Replace characters invalid as Firebase keys with full-width equivalents; resolve blanks/duplicates */
       const sanitize = (s) => String(s || "").trim()
-        .replace(/\./g, "。").replace(/#/g, "#").replace(/\$/g, "$")
-        .replace(/\//g, "/").replace(/\[/g, "[").replace(/\]/g, "]");
+        .replace(/\./g, "\uFF0E").replace(/#/g, "\uFF03").replace(/\$/g, "\uFF04")
+        .replace(/\//g, "\uFF0F").replace(/\[/g, "\uFF3B").replace(/\]/g, "\uFF3D");
       const headersRaw = rows[0].map(sanitize);
       const seen = {};
       const headers = headersRaw.map(h => {
